@@ -96,6 +96,27 @@
 .modal-close { position: absolute; top: 10px; right: 10px; background: rgba(26,42,74,0.1); border: 1.5px solid rgba(26,42,74,0.25); border-radius: 50%; color: var(--navy); cursor: pointer; font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
 .modal-title { font-size: 11px; letter-spacing: 0.18em; color: var(--navy); font-family: sans-serif; text-transform: uppercase; margin-bottom: 0.8rem; font-weight: 700; }
 .modal-dl-btn { background: var(--navy); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-family: sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 0.15em; padding: 10px 22px; text-transform: uppercase; }
+
+/* ===== 家族プロフィール ===== */
+.profile-section { margin-bottom: 1rem; }
+.profile-section-title { display: flex; align-items: center; justify-content: space-between; font-size: 10px; letter-spacing: 0.2em; color: var(--navy); font-family: sans-serif; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+.profile-chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; min-height: 36px; }
+.profile-chip { display: flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid rgba(26,42,74,0.2); border-radius: 20px; padding: 5px 8px 5px 6px; cursor: pointer; font-family: sans-serif; transition: border-color 0.15s, background 0.15s; }
+.profile-chip:hover, .profile-chip.active { border-color: var(--navy); background: rgba(26,42,74,0.06); }
+.profile-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.profile-name { font-size: 12px; color: var(--navy); font-weight: 600; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-del { width: 16px; height: 16px; border-radius: 50%; background: transparent; border: 1px solid rgba(26,42,74,0.22); color: var(--muted); cursor: pointer; font-size: 9px; line-height: 1; display: flex; align-items: center; justify-content: center; margin-left: 2px; flex-shrink: 0; padding: 0; }
+.profile-del:hover { background: rgba(192,57,43,0.12); border-color: #c0392b; color: #c0392b; }
+.profile-add-btn { display: flex; align-items: center; gap: 4px; background: transparent; border: 1.5px dashed rgba(26,42,74,0.28); border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: sans-serif; font-size: 11px; color: var(--muted); }
+.profile-add-btn:hover { border-color: var(--navy); color: var(--navy); }
+.profile-add-form { display: none; background: #fff; border: 1.5px solid rgba(26,42,74,0.13); border-radius: 10px; padding: 12px; margin-top: 8px; }
+.profile-add-form.open { display: block; }
+.paform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.paform-row { display: flex; gap: 8px; margin-top: 8px; }
+.pa-btn { flex: 1; padding: 9px; border-radius: 6px; font-family: sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 0.1em; cursor: pointer; border: none; }
+.pa-save-btn { background: var(--navy); color: #fff; }
+.pa-save-btn:hover { background: var(--navy2); }
+.pa-cancel-btn { background: transparent; border: 1.5px solid rgba(26,42,74,0.22) !important; color: var(--muted); }
 </style>
 
 <div class="app">
@@ -104,9 +125,41 @@
     <p>Natal Chart &amp; Transit Analysis</p>
   </div>
   <div class="divider"><div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div></div>
+
+  <!-- ===== 家族のネイタル ===== -->
+  <div class="profile-section">
+    <div class="profile-section-title">
+      <span>💫 家族のネイタル</span>
+      <span id="profileCount" style="font-weight:400;color:var(--muted)"></span>
+    </div>
+    <div class="profile-chips" id="profileChips"></div>
+    <div class="profile-add-form" id="profileAddForm">
+      <div style="font-size:10px;letter-spacing:0.15em;color:var(--navy);font-family:sans-serif;font-weight:700;text-transform:uppercase;margin-bottom:8px;">プロフィールを追加</div>
+      <div class="paform-grid">
+        <div class="form-group"><span class="form-label">名前</span><input class="form-input" type="text" id="paName" placeholder="例: お母さん" maxlength="10"></div>
+        <div class="form-group"><span class="form-label">出生地</span><input class="form-input" type="text" id="paPlace" placeholder="例: Tokyo" value="Tokyo"></div>
+        <div class="form-group"><span class="form-label">生年月日</span><input class="form-input" type="date" id="paDate"></div>
+        <div class="form-group"><span class="form-label">出生時刻</span><input class="form-input" type="time" id="paTime" value="12:00"></div>
+      </div>
+      <div class="paform-row">
+        <button class="pa-btn pa-cancel-btn" id="paCancelBtn">キャンセル</button>
+        <button class="pa-btn pa-save-btn" id="paSaveBtn">✦ 保存する</button>
+      </div>
+    </div>
+  </div>
+  <div class="divider" style="margin:0.8rem 0"><div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div></div>
+
   <div class="form-grid">
     <div class="form-group"><span class="form-label">生年月日</span><input class="form-input" type="date" id="birthDate" value="1990-01-01"></div>
-    <div class="form-group"><span class="form-label">出生時刻</span><input class="form-input" type="time" id="birthTime" value="12:00"></div>
+    <div class="form-group">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="form-label">出生時刻</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-family:sans-serif;font-size:9px;color:var(--muted);letter-spacing:0.08em;font-weight:700;text-transform:uppercase">
+          <input type="checkbox" id="solarHouseCheck" style="accent-color:var(--navy);width:12px;height:12px"> 時間不明
+        </label>
+      </div>
+      <input class="form-input" type="time" id="birthTime" value="12:00">
+    </div>
     <div class="form-group full"><span class="form-label">出生地（都市名）</span><input class="form-input" type="text" id="birthPlace" placeholder="例: Tokyo, Osaka, New York" value="Tokyo"></div>
     <div class="form-group full"><button class="gen-btn" id="genBtn">✦ チャートを生成する ✦</button></div>
   </div>
@@ -120,6 +173,7 @@
       <input class="transit-date-input" type="date" id="transitDate" value="2026-04-26">
       <input class="transit-date-input" type="time" id="transitTime" value="12:00" style="width:100px">
       <button class="today-btn" id="todayBtn">今日</button>
+      <span id="solarBadge" style="display:none;background:rgba(184,134,11,0.12);border:1px solid rgba(184,134,11,0.35);border-radius:4px;padding:3px 9px;font-size:9px;font-family:sans-serif;color:#7a5800;letter-spacing:0.1em;font-weight:700;white-space:nowrap">☀ ソーラーハウス</span>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#1a2a4a;border:2px solid #1a2a4a"></div><span>ネイタル</span></div>
         <div class="legend-item"><div class="legend-dot" style="background:#c0392b;border:2px solid #c0392b"></div><span>トランジット</span></div>
@@ -132,6 +186,7 @@
       <button class="tab-btn" data-tab="houses">ハウス</button>
       <button class="tab-btn" data-tab="aspects">アスペクト</button>
       <button class="tab-btn" data-tab="transits">トランジット一覧</button>
+      <button class="tab-btn" data-tab="numerology">数秘</button>
     </div>
 
     <div id="pane-chart" class="tab-pane active">
@@ -158,6 +213,9 @@
       <div class="row-between"><p class="sec-title">トランジットアスペクト</p><button class="action-btn" id="dlTransitsBtn">↓ CSV保存</button></div>
       <div id="transitList"></div>
     </div>
+    <div id="pane-numerology" class="tab-pane">
+      <div id="numerologyContent"></div>
+    </div>
   </div>
 </div>
 
@@ -183,6 +241,7 @@ const CITIES={'tokyo':[35.6762,139.6503],'osaka':[34.6937,135.5023],'kyoto':[35.
 function getCoords(c){const k=c.toLowerCase().trim();for(const[n,v]of Object.entries(CITIES))if(k.includes(n)||n.includes(k))return v;return[35.6762,139.6503];}
 function toJD(y,mo,d,h,mi,tz){const ut=h+mi/60-tz,day=d+ut/24;let yr=y,m=mo;if(m<=2){yr--;m+=12;}const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(m+1))+day+B-1524.5;}
 function calcPlanet(p,jd){const T=(jd-2451545)/36525;let L;switch(p){case'Sun':{L=280.46646+36000.76983*T;const M=(357.52911+35999.05029*T)*Math.PI/180;L+=(1.914602-0.004817*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);break;}case'Moon':{const D=(297.85036+445267.11148*T)*Math.PI/180,M=(357.52772+35999.05034*T)*Math.PI/180,Mp=(134.96298+477198.867398*T)*Math.PI/180,F=(93.27191+483202.017538*T)*Math.PI/180;L=218.3165+481267.8813*T+6.289*Math.sin(Mp)-1.274*Math.sin(Mp-2*D)+0.658*Math.sin(2*D)-0.186*Math.sin(M)-0.114*Math.sin(2*F)+0.059*Math.sin(2*Mp-2*D);break;}case'Mercury':L=252.250906+149472.6746358*T+23.44*Math.sin((149472.6746358*T+175)*Math.PI/180)+2.98*Math.sin((2*(149472.6746358*T+175))*Math.PI/180);break;case'Venus':L=181.979801+58517.815676*T+0.776*Math.sin((58517.815676*T+50)*Math.PI/180);break;case'Mars':{const M=(19.387+19140.302*T)*Math.PI/180;L=355.433+19140.299*T+10.691*Math.sin(M)+0.623*Math.sin(2*M);break;}case'Jupiter':{const M=(20.9+3034.906*T)*Math.PI/180;L=34.351+3034.906*T+5.555*Math.sin(M)+0.168*Math.sin(2*M);break;}case'Saturn':{const M=(317.8+1222.114*T)*Math.PI/180;L=50.077+1221.944*T+6.394*Math.sin(M)+0.191*Math.sin(2*M);break;}case'Uranus':{const M=(142.59+428.461*T)*Math.PI/180;L=314.055+428.466*T+0.832*Math.sin(M);break;}case'Neptune':{const M=(256.225+218.458*T)*Math.PI/180;L=304.348+218.486*T+0.786*Math.sin(M);break;}case'Pluto':{const M=(14.882+145.21*T)*Math.PI/180;L=238.929+144.96*T+28.3*Math.sin(M);break;}}return((L%360)+360)%360;}
+function calcSolarHouses(sunDeg){return Array.from({length:12},(_,i)=>((sunDeg+i*30)%360));}
 function calcHouses(jd,lat,lon){const T=(jd-2451545)/36525,LST=((280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T)%360+360)%360,RAMC=((LST+lon)%360+360)%360,eps=(23.439291111-0.013004167*T)*Math.PI/180,latR=lat*Math.PI/180,R=RAMC*Math.PI/180;let mc=Math.atan2(Math.cos(R),-(Math.sin(R)*Math.cos(eps)+Math.tan(latR)*Math.sin(eps)))*180/Math.PI;if(Math.cos(R)<0)mc=(mc+180)%360;mc=(mc+360)%360;let asc=Math.atan2(Math.cos(R),-(Math.sin(eps)*Math.tan(latR)+Math.sin(R)*Math.cos(eps)))*180/Math.PI;asc=(asc+360)%360;const h=[asc];for(let i=1;i<12;i++){if(i===3)h.push((mc+180)%360);else if(i===6)h.push((asc+180)%360);else if(i===9)h.push(mc);else{const b=h[i<3?0:i<6?3:i<9?6:9];h.push((b+(i%3)*30)%360);}}return h;}
 function degToSDD(deg){const n=((deg%360)+360)%360,si=Math.floor(n/30),dis=n%30;return{si,d:Math.floor(dis),m:Math.floor((dis-Math.floor(dis))*60)};}
 function getAspect(a,b){let diff=Math.abs(a-b);if(diff>180)diff=360-diff;const defs=[{name:'コンジャンクション',sym:'☌',ang:0,orb:8,cls:'conj'},{name:'トライン',sym:'△',ang:120,orb:8,cls:'trine'},{name:'セクスタイル',sym:'⚹',ang:60,orb:6,cls:'sext'},{name:'スクエア',sym:'□',ang:90,orb:7,cls:'sq'},{name:'オポジション',sym:'☍',ang:180,orb:8,cls:'opp'},{name:'クインカンクス',sym:'⊻',ang:150,orb:3,cls:'opp'},{name:'セミスクエア',sym:'∠',ang:45,orb:3,cls:'sq'}];for(const d of defs){const o=Math.abs(diff-d.ang);if(o<=d.orb)return{...d,orb:o.toFixed(1)};}return null;}
@@ -558,13 +617,16 @@ function drawChart(canvas,pos,houses,todayPos,size){
 }
 
 function calculate(){
-  const dateStr=document.getElementById('birthDate').value,timeStr=document.getElementById('birthTime').value,place=document.getElementById('birthPlace').value;
-  if(!dateStr||!timeStr)return;
+  const dateStr=document.getElementById('birthDate').value,place=document.getElementById('birthPlace').value;
+  if(!dateStr)return;
+  const useSolar=document.getElementById('solarHouseCheck').checked;
+  const timeStr=useSolar?'12:00':document.getElementById('birthTime').value;
+  if(!timeStr)return;
   const[y,mo,d]=dateStr.split('-').map(Number),[h,mi]=timeStr.split(':').map(Number);
   const[lat,lon]=getCoords(place),tz=Math.round(lon/15),jd=toJD(y,mo,d,h,mi,tz);
   const pos={};PLANETS.forEach(p=>pos[p]=calcPlanet(p,jd));
-  const houses=calcHouses(jd,lat,lon);
-  CD={pos,houses,birthDate:dateStr,birthPlace:place};
+  const houses=useSolar?calcSolarHouses(pos.Sun):calcHouses(jd,lat,lon);
+  CD={pos,houses,birthDate:dateStr,birthPlace:place,solarHouse:useSolar};
   document.getElementById('results').style.display='block';
   renderAll();
   document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
@@ -580,7 +642,9 @@ function getTodayPos(){
 function renderAll(){
   const tp=getTodayPos();
   drawChart(document.getElementById('natalChart'),CD.pos,CD.houses,tp,320);
-  renderPlanets(tp);renderHouses();renderAspects();renderTransits(tp);
+  renderPlanets(tp);renderHouses();renderAspects();renderTransits(tp);renderNumerology();
+  const sb=document.getElementById('solarBadge');
+  if(sb)sb.style.display=(CD&&CD.solarHouse)?'inline-block':'none';
 }
 
 function renderPlanets(tp){
@@ -663,6 +727,13 @@ function downloadCSV(fn,rows){const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')
 // タブ
 document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('pane-'+btn.dataset.tab).classList.add('active');if(btn.dataset.tab==='chart'&&CD)setTimeout(()=>{const tp=getTodayPos();drawChart(document.getElementById('natalChart'),CD.pos,CD.houses,tp,320);},50);});});
 
+// 時間不明チェックボックス
+document.getElementById('solarHouseCheck').addEventListener('change',function(){
+  const ti=document.getElementById('birthTime');
+  ti.disabled=this.checked;
+  ti.style.opacity=this.checked?'0.35':'1';
+});
+
 // メイン
 document.getElementById('genBtn').addEventListener('click',calculate);
 
@@ -693,4 +764,159 @@ document.getElementById('dlPlanetsBtn').addEventListener('click',()=>{if(!CD)ret
 document.getElementById('dlHousesBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['ハウス','サイン','度','分']];CD.houses.forEach((h,i)=>{const s=degToSDD(h);rows.push([`H${i+1}`,SIGNS[s.si],s.d,s.m]);});downloadCSV(`houses-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlAspectsBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['天体1','天体2','アスペクト','角度','オーブ']];for(let i=0;i<PLANETS.length;i++)for(let j=i+1;j<PLANETS.length;j++){const asp=getAspect(CD.pos[PLANETS[i]],CD.pos[PLANETS[j]]);if(asp)rows.push([PNAMES[PLANETS[i]],PNAMES[PLANETS[j]],asp.name,asp.ang+'°',asp.orb+'°']);}downloadCSV(`aspects-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlTransitsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();if(!tp)return;const rows=[['T天体','アスペクト','N天体','オーブ']];PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{const asp=getAspect(tp[tpl],CD.pos[npl]);if(asp)rows.push([PNAMES[tpl],asp.name,PNAMES[npl],asp.orb+'°']);}));downloadCSV(`transits-${CD.birthDate}.csv`,rows);});
+
+// ===== 数秘術 =====
+const NUM_MEANINGS={
+  1:{title:'先駆者',keyword:'独立・開拓・意志',desc:'自らの道を切り開く力を持つ数。リーダーシップと独自性が人生のテーマ。'},
+  2:{title:'調和者',keyword:'協調・感受性・直感',desc:'関係性の中で輝く数。繊細な感受性と調和を生み出す才能が鍵。'},
+  3:{title:'表現者',keyword:'創造・喜び・コミュニケーション',desc:'言葉・芸術・表現で世界を豊かにする数。喜びを広げることが使命。'},
+  4:{title:'建設者',keyword:'安定・努力・秩序',desc:'地道な積み重ねで確かな基盤を築く数。誠実さと継続力が最大の武器。'},
+  5:{title:'冒険者',keyword:'自由・変化・多様性',desc:'変化と経験を通じて成長する数。自由への欲求が人生を豊かに彩る。'},
+  6:{title:'愛育者',keyword:'愛・責任・調和',desc:'家族や身近な人を愛し支える数。美と調和への感性も強く持つ。'},
+  7:{title:'探求者',keyword:'内省・神秘・叡智',desc:'深い思索と精神的探求を旨とする数。見えない世界への洞察が才能。'},
+  8:{title:'実現者',keyword:'力・達成・豊かさ',desc:'大きな夢を現実に変える力を持つ数。物質と精神の両立が人生のテーマ。'},
+  9:{title:'完成者',keyword:'完結・人道・手放し',desc:'一つのサイクルを完成させる数。与えることと手放すことに深い意味がある。'},
+  11:{title:'マスター 11',keyword:'霊的感受性・啓示・光',desc:'マスターナンバー。強い霊的感受性と直感力を持ち、インスピレーションで周囲を照らす使命。'},
+  22:{title:'マスター 22',keyword:'夢の実現・設計者',desc:'マスターナンバー。壮大なビジョンを現実世界に形として残す、マスタービルダーの数。'},
+  33:{title:'マスター 33',keyword:'無条件の愛・奉仕・師',desc:'マスターナンバー。無条件の愛で世界に奉仕する、マスターティーチャーの数。'},
+};
+const PY_MEANINGS={
+  1:'新たな始まりのサイクル。種を蒔き、新プロジェクトや新しい自分への一歩を踏み出す年。',
+  2:'育てる・待つ・関係を深める年。焦らず、パートナーシップと感受性を大切に。',
+  3:'表現・喜び・創造が花開く年。コミュニケーションと楽しさを前面に出して。',
+  4:'基盤を固める年。地道な努力と秩序が次のサイクルへの土台になる。',
+  5:'変化と解放の転換期。動きと自由を求めるエネルギーが高まる年。',
+  6:'愛・家族・責任のテーマが浮上。人間関係に丁寧に向き合う年。',
+  7:'内省と深化の年。自分自身と静かに向き合い、精神的な探求を深める時期。',
+  8:'収穫と達成の年。これまでの努力が形になりやすい、豊かさを受け取る年。',
+  9:'完結と手放しの年。一つのサイクルの終わりを受け入れ、次の始まりへ準備する。',
+  11:'マスター的な変容の年。強烈な直感と啓示がある。感受性が高まりすぎることも。',
+  22:'壮大なビジョンが現実に近づく年。大きな目標に向けて着実に動く時期。',
+  33:'愛と奉仕が問われる特別な年。周囲を思いやることで、深い満足感が得られる。',
+};
+
+function digitSum(n){return String(n).split('').reduce((s,c)=>s+parseInt(c),0);}
+function reduceNum(n){while(n>9&&n!==11&&n!==22&&n!==33)n=digitSum(n);return n;}
+function calcLifePath(dateStr){return reduceNum(dateStr.replace(/-/g,'').split('').reduce((s,c)=>s+parseInt(c),0));}
+function calcBirthdayNum(dateStr){return reduceNum(parseInt(dateStr.split('-')[2]));}
+function calcPersonalYear(dateStr){
+  const[,mo,d]=dateStr.split('-').map(Number),yr=new Date().getFullYear();
+  return reduceNum(digitSum(mo)+digitSum(d)+digitSum(yr));
+}
+
+function renderNumerology(){
+  if(!CD||!CD.birthDate)return;
+  const lp=calcLifePath(CD.birthDate),bd=calcBirthdayNum(CD.birthDate),py=calcPersonalYear(CD.birthDate);
+  const lpM=NUM_MEANINGS[lp]||{},bdM=NUM_MEANINGS[bd]||{},pyM=PY_MEANINGS[py]||'';
+  const yr=new Date().getFullYear();
+  const isMaster=n=>n===11||n===22||n===33;
+  const masterBadge=n=>isMaster(n)?`<span style="font-size:9px;background:rgba(184,134,11,0.15);color:#7a5800;border-radius:3px;padding:2px 6px;font-family:sans-serif;font-weight:700;letter-spacing:0.08em;margin-left:6px">MASTER</span>`:'';
+  document.getElementById('numerologyContent').innerHTML=`
+    <div style="display:grid;gap:10px;">
+      <div class="pcard" style="border-color:rgba(184,134,11,0.35);background:linear-gradient(135deg,#fffdf5,#fff)">
+        <div class="pcard-name" style="font-size:10px;margin-bottom:6px">ライフパスナンバー（運命の数）</div>
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+          <span style="font-size:2.8rem;font-weight:700;color:var(--navy);line-height:1">${lp}</span>
+          <span style="font-size:14px;color:var(--gold);font-weight:600">${lpM.title||''}</span>${masterBadge(lp)}
+        </div>
+        <div style="font-size:10px;color:var(--gold);font-family:sans-serif;letter-spacing:0.1em;margin:5px 0 6px">${lpM.keyword||''}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:sans-serif;line-height:1.65">${lpM.desc||''}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="pcard">
+          <div class="pcard-name" style="margin-bottom:5px">誕生日数</div>
+          <div style="display:flex;align-items:baseline;gap:6px">\
+            <span style="font-size:2rem;font-weight:700;color:var(--navy);line-height:1">${bd}</span>${masterBadge(bd)}
+          </div>
+          <div style="font-size:11px;color:var(--gold);font-family:sans-serif;margin:4px 0 3px;font-weight:600">${bdM.title||''}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:sans-serif;line-height:1.5">${bdM.keyword||''}</div>
+        </div>
+        <div class="pcard" style="border-color:rgba(192,57,43,0.22)">
+          <div class="pcard-name" style="color:#c0392b;margin-bottom:5px">${yr}年 パーソナルイヤー</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-size:2rem;font-weight:700;color:#c0392b;line-height:1">${py}</span>${masterBadge(py)}
+          </div>
+          <div style="font-size:11px;color:var(--muted);font-family:sans-serif;margin-top:6px;line-height:1.6">${pyM}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ===== 家族プロフィール管理 =====
+const PROFILE_KEY='hoshiyomi_profiles_v1';
+const MAX_PROFILES=5;
+let activeProfileId=null;
+
+function loadProfiles(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY))||[];}catch{return[];}}
+function saveProfiles(arr){localStorage.setItem(PROFILE_KEY,JSON.stringify(arr));}
+
+function renderProfiles(){
+  const profiles=loadProfiles();
+  document.getElementById('profileCount').textContent=`${profiles.length} / ${MAX_PROFILES}`;
+  let html='';
+  profiles.forEach(p=>{
+    const initial=[...p.name][0]||'?';
+    const isActive=p.id===activeProfileId;
+    html+=`<div class="profile-chip${isActive?' active':''}" onclick="applyProfile('${p.id}')" title="${p.birthDate} ${p.birthTime} ${p.birthPlace}">
+      <div class="profile-avatar">${initial}</div>
+      <span class="profile-name">${p.name}</span>
+      <button class="profile-del" onclick="deleteProfile(event,'${p.id}')" title="削除">✕</button>
+    </div>`;
+  });
+  if(profiles.length<MAX_PROFILES){
+    html+=`<button class="profile-add-btn" onclick="toggleAddForm()">＋ 追加</button>`;
+  }
+  document.getElementById('profileChips').innerHTML=html;
+}
+
+function toggleAddForm(){
+  const f=document.getElementById('profileAddForm');
+  f.classList.toggle('open');
+  if(f.classList.contains('open'))document.getElementById('paName').focus();
+}
+
+function applyProfile(id){
+  const p=loadProfiles().find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('birthDate').value=p.birthDate;
+  document.getElementById('birthTime').value=p.birthTime;
+  document.getElementById('birthPlace').value=p.birthPlace;
+  activeProfileId=id;
+  renderProfiles();
+  calculate();
+}
+
+function deleteProfile(e,id){
+  e.stopPropagation();
+  if(!confirm('このプロフィールを削除しますか？'))return;
+  const profiles=loadProfiles().filter(p=>p.id!==id);
+  saveProfiles(profiles);
+  if(activeProfileId===id)activeProfileId=null;
+  renderProfiles();
+}
+
+document.getElementById('paSaveBtn').addEventListener('click',()=>{
+  const name=document.getElementById('paName').value.trim();
+  const date=document.getElementById('paDate').value;
+  const time=document.getElementById('paTime').value||'12:00';
+  const place=document.getElementById('paPlace').value.trim()||'Tokyo';
+  if(!name){alert('名前を入力してください');return;}
+  if(!date){alert('生年月日を入力してください');return;}
+  const profiles=loadProfiles();
+  if(profiles.length>=MAX_PROFILES)return;
+  profiles.push({id:Date.now().toString(),name,birthDate:date,birthTime:time,birthPlace:place});
+  saveProfiles(profiles);
+  document.getElementById('paName').value='';
+  document.getElementById('paDate').value='';
+  document.getElementById('paTime').value='12:00';
+  document.getElementById('paPlace').value='Tokyo';
+  document.getElementById('profileAddForm').classList.remove('open');
+  renderProfiles();
+});
+
+document.getElementById('paCancelBtn').addEventListener('click',()=>{
+  document.getElementById('profileAddForm').classList.remove('open');
+});
+
+renderProfiles();
 </script>
