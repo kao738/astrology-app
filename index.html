@@ -240,7 +240,83 @@ const CITIES={'tokyo':[35.6762,139.6503],'osaka':[34.6937,135.5023],'kyoto':[35.
 
 function getCoords(c){const k=c.toLowerCase().trim();for(const[n,v]of Object.entries(CITIES))if(k.includes(n)||n.includes(k))return v;return[35.6762,139.6503];}
 function toJD(y,mo,d,h,mi,tz){const ut=h+mi/60-tz,day=d+ut/24;let yr=y,m=mo;if(m<=2){yr--;m+=12;}const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(m+1))+day+B-1524.5;}
-function calcPlanet(p,jd){const T=(jd-2451545)/36525;let L;switch(p){case'Sun':{L=280.46646+36000.76983*T;const M=(357.52911+35999.05029*T)*Math.PI/180;L+=(1.914602-0.004817*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);break;}case'Moon':{const D=(297.85036+445267.11148*T)*Math.PI/180,M=(357.52772+35999.05034*T)*Math.PI/180,Mp=(134.96298+477198.867398*T)*Math.PI/180,F=(93.27191+483202.017538*T)*Math.PI/180;L=218.3165+481267.8813*T+6.289*Math.sin(Mp)-1.274*Math.sin(Mp-2*D)+0.658*Math.sin(2*D)-0.186*Math.sin(M)-0.114*Math.sin(2*F)+0.059*Math.sin(2*Mp-2*D);break;}case'Mercury':L=252.250906+149472.6746358*T+23.44*Math.sin((149472.6746358*T+175)*Math.PI/180)+2.98*Math.sin((2*(149472.6746358*T+175))*Math.PI/180);break;case'Venus':L=181.979801+58517.815676*T+0.776*Math.sin((58517.815676*T+50)*Math.PI/180);break;case'Mars':{const M=(19.387+19140.302*T)*Math.PI/180;L=355.433+19140.299*T+10.691*Math.sin(M)+0.623*Math.sin(2*M);break;}case'Jupiter':{const M=(20.9+3034.906*T)*Math.PI/180;L=34.351+3034.906*T+5.555*Math.sin(M)+0.168*Math.sin(2*M);break;}case'Saturn':{const M=(317.8+1222.114*T)*Math.PI/180;L=50.077+1221.944*T+6.394*Math.sin(M)+0.191*Math.sin(2*M);break;}case'Uranus':{const M=(142.59+428.461*T)*Math.PI/180;L=314.055+428.466*T+0.832*Math.sin(M);break;}case'Neptune':{const M=(256.225+218.458*T)*Math.PI/180;L=304.348+218.486*T+0.786*Math.sin(M);break;}case'Pluto':{const M=(14.882+145.21*T)*Math.PI/180;L=238.929+144.96*T+28.3*Math.sin(M);break;}}return((L%360)+360)%360;}
+function calcPlanet(p,jd){
+  const T=(jd-2451545)/36525,d=jd-2451545;
+  if(p==='Sun'){
+    const M=(((357.52911+35999.05029*T)%360)+360)%360*Math.PI/180;
+    let L=280.46646+36000.76983*T;
+    L+=(1.914602-0.004817*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);
+    return((L%360)+360)%360;
+  }
+  if(p==='Moon'){
+    const D=(((297.85036+445267.11148*T)%360)+360)%360*Math.PI/180,
+          M=(((357.52772+35999.05034*T)%360)+360)%360*Math.PI/180,
+          Mp=(((134.96298+477198.867398*T)%360)+360)%360*Math.PI/180,
+          F=(((93.27191+483202.017538*T)%360)+360)%360*Math.PI/180;
+    const L=218.3165+481267.8813*T+6.289*Math.sin(Mp)-1.274*Math.sin(Mp-2*D)+0.658*Math.sin(2*D)
+            -0.186*Math.sin(M)-0.114*Math.sin(2*F)+0.059*Math.sin(2*Mp-2*D);
+    return((L%360)+360)%360;
+  }
+  // Earth heliocentric position for geocentric conversion
+  const Me=(((357.52911+35999.05029*T)%360)+360)%360*Math.PI/180;
+  const eCen=(1.914602-0.004817*T)*Math.sin(Me)+(0.019993-0.000101*T)*Math.sin(2*Me)+0.000289*Math.sin(3*Me);
+  const earthGeo=((280.46646+36000.76983*T+eCen)%360+360)%360;
+  const earthLon=(earthGeo+180)%360;
+  const earthR=1.000001018*(1-0.01671123*Math.cos(Me)-0.00014*Math.cos(2*Me));
+  let hLon,hR;
+  if(p==='Mercury'){
+    const M=(((174.7948+4.09233445*d)%360)+360)%360*Math.PI/180;
+    const L0=(((252.2509+4.09233445*d)%360)+360)%360;
+    const C=23.44*Math.sin(M)+2.98*Math.sin(2*M)+0.45*Math.sin(3*M)+0.08*Math.sin(4*M);
+    hLon=((L0+C)%360+360)%360;
+    const e=0.20563,v=M+C*Math.PI/180;
+    hR=0.387098*(1-e*e)/(1+e*Math.cos(v));
+  } else if(p==='Venus'){
+    const M=(((50.4161+1.60213034*d)%360)+360)%360*Math.PI/180;
+    const L0=(((181.9798+1.60213034*d)%360)+360)%360;
+    const C=0.7758*Math.sin(M)+0.0033*Math.sin(2*M);
+    hLon=((L0+C)%360+360)%360;
+    const e=0.00677;
+    hR=0.723330*(1-e*e)/(1+e*Math.cos(M));
+  } else if(p==='Mars'){
+    const M=(((19.387+19140.302*T)%360)+360)%360*Math.PI/180;
+    const L0=(((355.433+19140.299*T)%360)+360)%360;
+    const C=10.691*Math.sin(M)+0.623*Math.sin(2*M)+0.05*Math.sin(3*M);
+    hLon=((L0+C)%360+360)%360;
+    const e=0.09340,v=M+C*Math.PI/180;
+    hR=1.523679*(1-e*e)/(1+e*Math.cos(v));
+  } else if(p==='Jupiter'){
+    const M=(((20.9+3034.906*T)%360)+360)%360*Math.PI/180;
+    const L0=(((34.351+3034.906*T)%360)+360)%360;
+    const C=5.555*Math.sin(M)+0.168*Math.sin(2*M);
+    hLon=((L0+C)%360+360)%360;
+    hR=5.202887*(1-0.04839*0.04839)/(1+0.04839*Math.cos(M));
+  } else if(p==='Saturn'){
+    const M=(((317.8+1222.114*T)%360)+360)%360*Math.PI/180;
+    const L0=(((50.077+1221.944*T)%360)+360)%360;
+    const C=6.394*Math.sin(M)+0.191*Math.sin(2*M);
+    hLon=((L0+C)%360+360)%360;
+    hR=9.554059*(1-0.05386*0.05386)/(1+0.05386*Math.cos(M));
+  } else if(p==='Uranus'){
+    const M=(((142.59+428.461*T)%360)+360)%360*Math.PI/180;
+    const L0=(((314.055+428.466*T)%360)+360)%360;
+    hLon=((L0+0.832*Math.sin(M))%360+360)%360;
+    hR=19.218;
+  } else if(p==='Neptune'){
+    const M=(((256.225+218.458*T)%360)+360)%360*Math.PI/180;
+    const L0=(((304.348+218.486*T)%360)+360)%360;
+    hLon=((L0+0.786*Math.sin(M))%360+360)%360;
+    hR=30.110;
+  } else {
+    const M=(((14.882+145.21*T)%360)+360)%360*Math.PI/180;
+    const L0=(((238.929+144.96*T)%360)+360)%360;
+    hLon=((L0+28.3*Math.sin(M))%360+360)%360;
+    hR=39.48;
+  }
+  const pR=hLon*Math.PI/180,eR=earthLon*Math.PI/180;
+  const dx=hR*Math.cos(pR)-earthR*Math.cos(eR),dy=hR*Math.sin(pR)-earthR*Math.sin(eR);
+  return((Math.atan2(dy,dx)*180/Math.PI)+360)%360;
+}
 function calcSolarHouses(sunDeg){return Array.from({length:12},(_,i)=>((sunDeg+i*30)%360));}
 function calcHouses(jd,lat,lon){const T=(jd-2451545)/36525,LST=((280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T)%360+360)%360,RAMC=((LST+lon)%360+360)%360,eps=(23.439291111-0.013004167*T)*Math.PI/180,latR=lat*Math.PI/180,R=RAMC*Math.PI/180;let mc=Math.atan2(Math.cos(R),-(Math.sin(R)*Math.cos(eps)+Math.tan(latR)*Math.sin(eps)))*180/Math.PI;if(Math.cos(R)<0)mc=(mc+180)%360;mc=(mc+360)%360;let asc=Math.atan2(Math.cos(R),-(Math.sin(eps)*Math.tan(latR)+Math.sin(R)*Math.cos(eps)))*180/Math.PI;asc=(asc+360)%360;const h=[asc];for(let i=1;i<12;i++){if(i===3)h.push((mc+180)%360);else if(i===6)h.push((asc+180)%360);else if(i===9)h.push(mc);else{const b=h[i<3?0:i<6?3:i<9?6:9];h.push((b+(i%3)*30)%360);}}return h;}
 function degToSDD(deg){const n=((deg%360)+360)%360,si=Math.floor(n/30),dis=n%30;return{si,d:Math.floor(dis),m:Math.floor((dis-Math.floor(dis))*60)};}
@@ -498,7 +574,7 @@ function drawChart(canvas,pos,houses,todayPos,size){
   // トランジット天体（外リング）
   if(todayPos){
     PLANETS.forEach(p=>{
-      const deg=((todayPos[p]-houses[0]+360)%360),a=(deg-90)*Math.PI/180;
+      const deg=((todayPos[p]-houses[0]+360)%360),a=(-deg-90)*Math.PI/180;
       const r=(TOR+TIR)/2;
       const px2=cx+r*Math.cos(a),py2=cy+r*Math.sin(a);
       ctx.fillStyle='rgba(255,255,255,0.95)';
@@ -516,8 +592,8 @@ function drawChart(canvas,pos,houses,todayPos,size){
       PLANETS.forEach(np=>{
         const asp=getAspect(todayPos[tp],pos[np]);
         if(asp){
-          const ta=((todayPos[tp]-houses[0]+360)%360-90)*Math.PI/180;
-          const na=((pos[np]-houses[0]+360)%360-90)*Math.PI/180;
+          const ta=(-((todayPos[tp]-houses[0]+360)%360)-90)*Math.PI/180;
+          const na=(-((pos[np]-houses[0]+360)%360)-90)*Math.PI/180;
           const tr=(TOR+TIR)/2, nr=(HR+innerR)/2;
           ctx.strokeStyle=ac[asp.cls]||'rgba(0,0,0,0.15)';
           ctx.lineWidth=0.7;
@@ -535,8 +611,8 @@ function drawChart(canvas,pos,houses,todayPos,size){
   // サインセクター
   const signColors=['#fff8f0','#f0fff4','#f0f4ff','#fff0f8','#fffaf0','#f4fff0','#f0f8ff','#fff0f0','#f5f0ff','#f0fbff','#f8f5ff','#fff0fc'];
   for(let i=0;i<12;i++){
-    const sa=((-houses[0]+i*30-90)*Math.PI/180),ea=((-houses[0]+(i+1)*30-90)*Math.PI/180);
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,OR,sa,ea);ctx.closePath();
+    const sa=((houses[0]-i*30-90)*Math.PI/180),ea=((houses[0]-(i+1)*30-90)*Math.PI/180);
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,OR,sa,ea,true);ctx.closePath();
     ctx.fillStyle=signColors[i];ctx.fill();
     ctx.strokeStyle='rgba(26,42,74,0.1)';ctx.lineWidth=0.5;ctx.stroke();
     const ma=(sa+ea)/2;
@@ -553,7 +629,7 @@ function drawChart(canvas,pos,houses,todayPos,size){
   ctx.beginPath();ctx.arc(cx,cy,SR,0,Math.PI*2);ctx.fill();
 
   for(let i=0;i<12;i++){
-    const a=((houses[i]-houses[0]-90)*Math.PI/180);
+    const a=((houses[0]-houses[i]-90)*Math.PI/180);
     const isAngle=i===0||i===3||i===6||i===9;
     ctx.strokeStyle=isAngle?'rgba(26,42,74,0.7)':'rgba(26,42,74,0.28)';
     ctx.lineWidth=isAngle?1.3*sc:0.7;
@@ -564,7 +640,7 @@ function drawChart(canvas,pos,houses,todayPos,size){
     let mid=(houses[i]+next)/2;
     if(next<houses[i])mid=(houses[i]+next+360)/2;
     mid=mid%360;
-    const midA=((mid-houses[0]-90)*Math.PI/180);
+    const midA=((houses[0]-mid-90)*Math.PI/180);
     const labelR=(SR+HR)/2;
     ctx.fillStyle='#fff';
     ctx.beginPath();ctx.arc(cx+labelR*Math.cos(midA),cy+labelR*Math.sin(midA),7.5*sc,0,Math.PI*2);ctx.fill();
@@ -592,7 +668,7 @@ function drawChart(canvas,pos,houses,todayPos,size){
 
   // ネイタルアスペクトライン
   const pk=PLANETS.slice(0,7);
-  const pa=pk.map(p=>{const deg=((pos[p]-houses[0]+360)%360);return(deg-90)*Math.PI/180;});
+  const pa=pk.map(p=>{const deg=((pos[p]-houses[0]+360)%360);return(-deg-90)*Math.PI/180;});
   const pp=pk.map((_,i)=>({x:cx+(innerR-9*sc)*Math.cos(pa[i]),y:cy+(innerR-9*sc)*Math.sin(pa[i])}));
   const nac={conj:'rgba(184,134,11,0.5)',trine:'rgba(0,140,80,0.45)',sext:'rgba(0,100,180,0.4)',sq:'rgba(180,40,40,0.45)',opp:'rgba(160,80,0,0.45)'};
   ctx.lineWidth=0.7;
@@ -603,7 +679,7 @@ function drawChart(canvas,pos,houses,todayPos,size){
 
   // ネイタル惑星
   PLANETS.forEach(p=>{
-    const deg=((pos[p]-houses[0]+360)%360),a=(deg-90)*Math.PI/180;
+    const deg=((pos[p]-houses[0]+360)%360),a=(-deg-90)*Math.PI/180;
     const r=(HR+innerR)/2;
     const px2=cx+r*Math.cos(a),py2=cy+r*Math.sin(a);
     ctx.fillStyle='rgba(255,255,255,0.95)';
