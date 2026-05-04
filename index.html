@@ -117,6 +117,36 @@
 .pa-save-btn { background: var(--navy); color: #fff; }
 .pa-save-btn:hover { background: var(--navy2); }
 .pa-cancel-btn { background: transparent; border: 1.5px solid rgba(26,42,74,0.22) !important; color: var(--muted); }
+/* === 日付ナビゲーション === */
+.date-nav-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.nav-btn { background: rgba(26,42,74,0.08); border: 1.5px solid rgba(26,42,74,0.18); border-radius: 4px; color: var(--navy); cursor: pointer; font-family: sans-serif; font-size: 10px; font-weight: 700; padding: 5px 8px; white-space: nowrap; }
+.nav-btn:hover { background: rgba(26,42,74,0.16); }
+/* === 月間タイムライン === */
+.timeline-month-input { background: #f5f6fa; border: 1.5px solid rgba(26,42,74,0.25); border-radius: 5px; color: var(--navy); font-size: 12px; padding: 6px 10px; font-family: sans-serif; outline: none; }
+.tl-day { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid rgba(26,42,74,0.06); }
+.tl-date { font-size: 11px; font-family: sans-serif; color: var(--navy); font-weight: 700; min-width: 42px; }
+.tl-bar-wrap { flex: 1; height: 8px; background: rgba(26,42,74,0.07); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.tl-bar { height: 100%; border-radius: 4px; }
+.tl-aspects { font-size: 9px; font-family: sans-serif; color: var(--muted); flex: 1.5; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* === 日付比較 === */
+.compare-ctrl { background: #fff; border: 1.5px solid rgba(26,42,74,0.1); border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.compare-date-block { display: flex; flex-direction: column; gap: 5px; }
+.compare-date-label { font-size: 10px; font-family: sans-serif; font-weight: 700; letter-spacing: 0.1em; color: var(--navy); text-transform: uppercase; }
+.compare-date-inputs { display: flex; gap: 6px; flex-wrap: wrap; }
+.compare-btn { background: var(--navy); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-family: sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; padding: 9px 18px; text-transform: uppercase; }
+.compare-btn:hover { background: var(--navy2); }
+.compare-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .compare-panels { grid-template-columns: 1fr; } }
+.compare-col { background: #fff; border: 1.5px solid rgba(26,42,74,0.12); border-radius: 8px; padding: 12px; }
+.compare-col-a .compare-col-header { color: #1a2a4a; border-bottom: 2px solid #1a2a4a; }
+.compare-col-b .compare-col-header { color: #c0392b; border-bottom: 2px solid #c0392b; }
+.compare-col-header { font-size: 10px; font-family: sans-serif; font-weight: 700; margin-bottom: 8px; padding-bottom: 7px; letter-spacing: 0.12em; text-transform: uppercase; }
+.compare-item { display: flex; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(26,42,74,0.05); }
+.compare-item:last-child { border-bottom: none; }
+.ci-rank { min-width: 18px; height: 18px; border-radius: 50%; background: rgba(184,134,11,0.15); color: var(--gold); font-size: 9px; font-weight: 700; font-family: sans-serif; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ci-label { font-size: 11px; font-family: sans-serif; font-weight: 600; color: var(--navy); }
+.ci-interp { font-size: 10px; font-family: sans-serif; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.ci-orb { font-size: 9px; color: var(--gold); font-family: sans-serif; font-weight: 700; margin-top: 2px; }
 </style>
 
 <div class="app">
@@ -170,9 +200,19 @@
     <!-- トランジット日付コントロール（常に表示） -->
     <div class="transit-ctrl">
       <span class="transit-ctrl-label">🔄 トランジット日</span>
-      <input class="transit-date-input" type="date" id="transitDate" value="2026-04-26">
-      <input class="transit-date-input" type="time" id="transitTime" value="12:00" style="width:100px">
-      <button class="today-btn" id="todayBtn">今日</button>
+      <div class="date-nav-group">
+        <button class="nav-btn" id="navYearMinus">-1年</button>
+        <button class="nav-btn" id="navMonthMinus">-1月</button>
+        <button class="nav-btn" id="navWeekMinus">-1週</button>
+        <button class="nav-btn" id="navDayMinus">-1日</button>
+        <input class="transit-date-input" type="date" id="transitDate">
+        <input class="transit-date-input" type="time" id="transitTime" value="12:00" style="width:100px">
+        <button class="nav-btn" id="navDayPlus">+1日</button>
+        <button class="nav-btn" id="navWeekPlus">+1週</button>
+        <button class="nav-btn" id="navMonthPlus">+1月</button>
+        <button class="nav-btn" id="navYearPlus">+1年</button>
+        <button class="today-btn" id="todayBtn">今日</button>
+      </div>
       <span id="solarBadge" style="display:none;background:rgba(184,134,11,0.12);border:1px solid rgba(184,134,11,0.35);border-radius:4px;padding:3px 9px;font-size:9px;font-family:sans-serif;color:#7a5800;letter-spacing:0.1em;font-weight:700;white-space:nowrap">☀ ソーラーハウス</span>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#1a2a4a;border:2px solid #1a2a4a"></div><span>ネイタル</span></div>
@@ -187,6 +227,8 @@
       <button class="tab-btn" data-tab="aspects">アスペクト</button>
       <button class="tab-btn" data-tab="transits">トランジット一覧</button>
       <button class="tab-btn" data-tab="numerology">数秘</button>
+      <button class="tab-btn" data-tab="timeline">月間ライン</button>
+      <button class="tab-btn" data-tab="compare">日付比較</button>
     </div>
 
     <div id="pane-chart" class="tab-pane active">
@@ -215,6 +257,36 @@
     </div>
     <div id="pane-numerology" class="tab-pane">
       <div id="numerologyContent"></div>
+    </div>
+
+    <div id="pane-timeline" class="tab-pane">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <p class="sec-title">月間トランジット強度</p>
+        <input class="timeline-month-input" type="month" id="timelineMonth">
+        <button class="today-btn" id="timelineGenBtn" style="padding:6px 14px">表示</button>
+      </div>
+      <div id="timelineList"><p style="color:var(--muted);font-size:12px;font-family:sans-serif;padding:1rem">月を選んで「表示」を押してください</p></div>
+    </div>
+
+    <div id="pane-compare" class="tab-pane">
+      <div class="compare-ctrl">
+        <div class="compare-date-block">
+          <span class="compare-date-label">📅 日付 A</span>
+          <div class="compare-date-inputs">
+            <input class="transit-date-input" type="date" id="compareDateA">
+            <input class="transit-date-input" type="time" id="compareTimeA" value="12:00" style="width:100px">
+          </div>
+        </div>
+        <div class="compare-date-block">
+          <span class="compare-date-label">📅 日付 B</span>
+          <div class="compare-date-inputs">
+            <input class="transit-date-input" type="date" id="compareDateB">
+            <input class="transit-date-input" type="time" id="compareTimeB" value="12:00" style="width:100px">
+          </div>
+        </div>
+        <button class="compare-btn" id="compareBtn">✦ 比較する</button>
+      </div>
+      <div id="compareResult"><p style="color:var(--muted);font-size:12px;font-family:sans-serif;padding:0.5rem">日付A・Bを入力して「比較する」を押してください</p></div>
     </div>
   </div>
 </div>
@@ -995,4 +1067,172 @@ document.getElementById('paCancelBtn').addEventListener('click',()=>{
 });
 
 renderProfiles();
+
+// === 初期化：transitDateを今日に設定 ===
+(function initTransitDate(){
+  const now=new Date();
+  const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),d=String(now.getDate()).padStart(2,'0');
+  const h=String(now.getHours()).padStart(2,'0'),mi=String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('transitDate').value=`${y}-${m}-${d}`;
+  document.getElementById('transitTime').value=`${h}:${mi}`;
+})();
+
+// === 日付ナビゲーション ===
+function shiftDate(days){
+  const inp=document.getElementById('transitDate');
+  if(!inp.value)return;
+  const[y,m,d]=inp.value.split('-').map(Number);
+  const dt=new Date(y,m-1,d+days);
+  inp.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  updateTransit();
+}
+function shiftMonth(months){
+  const inp=document.getElementById('transitDate');
+  if(!inp.value)return;
+  const[y,m,d]=inp.value.split('-').map(Number);
+  const dt=new Date(y,m-1+months,d);
+  inp.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  updateTransit();
+}
+function shiftYear(years){
+  const inp=document.getElementById('transitDate');
+  if(!inp.value)return;
+  const[y,m,d]=inp.value.split('-').map(Number);
+  const dt=new Date(y+years,m-1,d);
+  inp.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  updateTransit();
+}
+document.getElementById('navDayMinus').addEventListener('click',()=>shiftDate(-1));
+document.getElementById('navWeekMinus').addEventListener('click',()=>shiftDate(-7));
+document.getElementById('navMonthMinus').addEventListener('click',()=>shiftMonth(-1));
+document.getElementById('navYearMinus').addEventListener('click',()=>shiftYear(-1));
+document.getElementById('navDayPlus').addEventListener('click',()=>shiftDate(1));
+document.getElementById('navWeekPlus').addEventListener('click',()=>shiftDate(7));
+document.getElementById('navMonthPlus').addEventListener('click',()=>shiftMonth(1));
+document.getElementById('navYearPlus').addEventListener('click',()=>shiftYear(1));
+
+// === 月間タイムライン ===
+(function initTimeline(){
+  const now=new Date();
+  document.getElementById('timelineMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+})();
+
+function renderTimeline(){
+  if(!CD){alert('先にチャートを生成してください');return;}
+  const monthStr=document.getElementById('timelineMonth').value;
+  if(!monthStr)return;
+  const[year,month]=monthStr.split('-').map(Number);
+  const daysInMonth=new Date(year,month,0).getDate();
+  const items=[];
+  for(let day=1;day<=daysInMonth;day++){
+    const jd=toJD(year,month,day,12,0,9);
+    const tp={};PLANETS.forEach(p=>tp[p]=calcPlanet(p,jd));
+    let totalScore=0;
+    const aspects=[];
+    PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{
+      const asp=getAspect(tp[tpl],CD.pos[npl]);
+      if(asp){
+        const orbN=parseFloat(asp.orb);
+        const score=calcTransitScore(tpl,npl,asp,orbN);
+        totalScore+=score;
+        aspects.push({tpl,npl,asp,score});
+      }
+    }));
+    aspects.sort((a,b)=>b.score-a.score);
+    items.push({day,totalScore,top:aspects.slice(0,3)});
+  }
+  const maxScore=Math.max(...items.map(i=>i.totalScore),1);
+  const DOW=['日','月','火','水','木','金','土'];
+  const html=items.map(({day,totalScore,top})=>{
+    const pct=Math.round((totalScore/maxScore)*100);
+    let fav=0,tense=0;
+    top.forEach(({asp})=>{if(asp.cls==='trine'||asp.cls==='sext')fav++;else if(asp.cls==='sq'||asp.cls==='opp')tense++;});
+    const barColor=fav>tense?'linear-gradient(90deg,#1a4a2a,#2a8050)':tense>fav?'linear-gradient(90deg,#4a1a1a,#8a2a2a)':'linear-gradient(90deg,#1a2a4a,#b8860b)';
+    const dotW=DOW[new Date(year,month-1,day).getDay()];
+    const isWeekend=[0,6].includes(new Date(year,month-1,day).getDay());
+    const topStr=top.map(({tpl,npl,asp})=>`T:${PNAMES[tpl]}${asp.sym}N:${PNAMES[npl]}`).join(' ');
+    return`<div class="tl-day" style="${isWeekend?'background:rgba(184,134,11,0.04)':''}">
+      <div class="tl-date" style="${isWeekend?'color:var(--gold)':''}">${month}/${day}<span style="font-size:8px;color:var(--muted);margin-left:2px">${dotW}</span></div>
+      <div class="tl-bar-wrap"><div class="tl-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      <div class="tl-aspects">${topStr}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('timelineList').innerHTML=html;
+}
+document.getElementById('timelineGenBtn').addEventListener('click',renderTimeline);
+
+// === 日付比較 ===
+(function initCompare(){
+  const now=new Date();
+  const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),d=String(now.getDate()).padStart(2,'0');
+  document.getElementById('compareDateA').value=`${y}-${m}-${d}`;
+  document.getElementById('compareDateB').value=`${y+1}-${m}-${d}`;
+})();
+
+function renderComparison(){
+  if(!CD){alert('先にチャートを生成してください');return;}
+  const dateA=document.getElementById('compareDateA').value;
+  const timeA=document.getElementById('compareTimeA').value||'12:00';
+  const dateB=document.getElementById('compareDateB').value;
+  const timeB=document.getElementById('compareTimeB').value||'12:00';
+  if(!dateA||!dateB){alert('日付A・Bを両方入力してください');return;}
+
+  function getPosForDate(ds,ts){
+    const[y,m,d]=ds.split('-').map(Number),[h,mi]=ts.split(':').map(Number);
+    const jd=toJD(y,m,d,h,mi,9);
+    const p={};PLANETS.forEach(pl=>p[pl]=calcPlanet(pl,jd));
+    return p;
+  }
+  function getTopTransits(tp){
+    const items=[];
+    PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{
+      const asp=getAspect(tp[tpl],CD.pos[npl]);
+      if(asp){
+        const orbN=parseFloat(asp.orb);
+        const score=calcTransitScore(tpl,npl,asp,orbN);
+        const interp=getTransitInterp(tpl,npl,asp);
+        items.push({tpl,npl,asp,score,interp});
+      }
+    }));
+    return items.sort((a,b)=>b.score-a.score).slice(0,5);
+  }
+
+  const posA=getPosForDate(dateA,timeA);
+  const posB=getPosForDate(dateB,timeB);
+  const topA=getTopTransits(posA);
+  const topB=getTopTransits(posB);
+
+  function renderCol(items,dateStr,colClass){
+    const label=dateStr.replace(/-/g,'/');
+    return`<div class="compare-col ${colClass}">
+      <div class="compare-col-header">${label}</div>
+      ${items.length?items.map(({tpl,npl,asp,interp},i)=>`
+        <div class="compare-item">
+          <div class="ci-rank">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div class="ci-label">T:${PNAMES[tpl]} ${asp.sym} N:${PNAMES[npl]}</div>
+            <div class="ci-interp">${interp}</div>
+            <div class="ci-orb">orb ${asp.orb}°</div>
+          </div>
+        </div>`).join(''):'<p style="color:var(--muted);font-size:11px;font-family:sans-serif;padding:8px">トランジットなし</p>'}
+    </div>`;
+  }
+
+  const planetCompHtml=`<div style="margin-top:12px;background:#fff;border:1.5px solid rgba(26,42,74,0.1);border-radius:8px;padding:12px">
+    <div class="sec-title" style="margin-bottom:8px">天体位置の比較</div>
+    <table class="asp-table"><thead><tr><th>天体</th><th>${dateA.replace(/-/g,'/')}</th><th>${dateB.replace(/-/g,'/')}</th></tr></thead><tbody>
+    ${PLANETS.map(p=>{const sA=degToSDD(posA[p]),sB=degToSDD(posB[p]);
+      return`<tr><td>${PSYM[p]} ${PNAMES[p]}</td><td>${SIGNS[sA.si]} ${sA.d}°${String(sA.m).padStart(2,'0')}'</td><td>${SIGNS[sB.si]} ${sB.d}°${String(sB.m).padStart(2,'0')}'</td></tr>`;
+    }).join('')}
+    </tbody></table>
+  </div>`;
+
+  document.getElementById('compareResult').innerHTML=`
+    <div class="compare-panels">
+      ${renderCol(topA,dateA,'compare-col-a')}
+      ${renderCol(topB,dateB,'compare-col-b')}
+    </div>
+    ${planetCompHtml}`;
+}
+document.getElementById('compareBtn').addEventListener('click',renderComparison);
 </script>
