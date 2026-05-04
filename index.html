@@ -714,12 +714,27 @@ function drawChart(canvas,pos,houses,todayPos,size){
     mid=mid%360;
     const midA=((houses[0]-mid+180)*Math.PI/180);
     const labelR=(SR+HR)/2;
-    ctx.fillStyle='#fff';
-    ctx.beginPath();ctx.arc(cx+labelR*Math.cos(midA),cy+labelR*Math.sin(midA),7.5*sc,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(26,42,74,0.15)';ctx.lineWidth=0.5;ctx.stroke();
-    ctx.fillStyle='#1a2a4a';ctx.font=`bold ${8.5*sc}px sans-serif`;
+    const lx=cx+labelR*Math.cos(midA),ly=cy+labelR*Math.sin(midA);
+    const isAngular=i===0||i===3||i===6||i===9;
+    const isSuccedent=i===1||i===4||i===7||i===10;
+    const r=isAngular?8.5*sc:isSuccedent?7.5*sc:6.5*sc;
+    if(isAngular){
+      ctx.fillStyle='#b8860b';
+      ctx.beginPath();ctx.rect(lx-r,ly-r,r*2,r*2);ctx.fill();
+      ctx.strokeStyle='rgba(184,134,11,0.6)';ctx.lineWidth=0.8;ctx.stroke();
+      ctx.fillStyle='#fff';
+    } else if(isSuccedent){
+      ctx.fillStyle='rgba(42,63,111,0.85)';
+      ctx.beginPath();ctx.arc(lx,ly,r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';
+    } else {
+      ctx.fillStyle='rgba(200,205,215,0.9)';
+      ctx.beginPath();ctx.arc(lx,ly,r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#4a5a7a';
+    }
+    ctx.font=`bold ${(isAngular?9:isSuccedent?8:7.5)*sc}px sans-serif`;
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(String(i+1),cx+labelR*Math.cos(midA),cy+labelR*Math.sin(midA));
+    ctx.fillText(String(i+1),lx,ly);
   }
 
   // ASC強調
