@@ -377,17 +377,28 @@ const CITIES={
   'chicago':[41.8781,-87.6298],'toronto':[43.6532,-79.3832],
 };
 
-function getCoords(c){
+const _geocodeCache={};
+async function getCoords(c){
   const latEl=document.getElementById('birthLat'),lonEl=document.getElementById('birthLon');
   const warn=document.getElementById('placeWarn');
   if(latEl&&lonEl&&latEl.value!==''&&lonEl.value!==''){
     const la=parseFloat(latEl.value),lo=parseFloat(lonEl.value);
     if(!isNaN(la)&&!isNaN(lo)){if(warn)warn.style.display='none';return[la,lo];}
   }
-  const k=c.trim();
-  const kl=k.toLowerCase();
-  for(const[n,v]of Object.entries(CITIES))if(kl.includes(n.toLowerCase())||n.toLowerCase().includes(kl)||k.includes(n)||n.includes(k))return(warn&&(warn.style.display='none'),v);
-  if(warn){warn.textContent='⚠ 「'+c+'」は未登録のため東京で代替計算しています。緯度・経度を直接入力すると正確になります。';warn.style.display='block';}
+  const k=c.trim(),kl=k.toLowerCase();
+  for(const[n,v]of Object.entries(CITIES))if(kl.includes(n.toLowerCase())||n.toLowerCase().includes(kl)||k.includes(n)||n.includes(k)){if(warn)warn.style.display='none';return v;}
+  if(_geocodeCache[k])return _geocodeCache[k];
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(k)}&format=json&limit=1&accept-language=ja`);
+    const data=await res.json();
+    if(data&&data.length>0){
+      const coords=[parseFloat(data[0].lat),parseFloat(data[0].lon)];
+      _geocodeCache[k]=coords;
+      if(warn){warn.textContent='📍 「'+c+'」→ 緯度'+coords[0].toFixed(4)+'° 経度'+coords[1].toFixed(4)+'°（OpenStreetMap）';warn.style.color='#2a7a4a';warn.style.background='rgba(42,122,74,0.08)';warn.style.display='block';}
+      return coords;
+    }
+  }catch(e){}
+  if(warn){warn.textContent='⚠ 「'+c+'」が見つかりませんでした。緯度・経度を直接入力してください。';warn.style.color='#c0392b';warn.style.background='rgba(192,57,43,0.08)';warn.style.display='block';}
   return[35.6762,139.6503];
 }
 function toJD(y,mo,d,h,mi,tz){const ut=h+mi/60-tz,day=d+ut/24;let yr=y,m=mo;if(m<=2){yr--;m+=12;}const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(m+1))+day+B-1524.5;}
@@ -897,14 +908,18 @@ function drawChart(canvas,pos,houses,todayPos,size){
   });
 }
 
-function calculate(){
+async function calculate(){
   const dateStr=document.getElementById('birthDate').value,place=document.getElementById('birthPlace').value;
   if(!dateStr)return;
   const useSolar=document.getElementById('solarHouseCheck').checked;
   const timeStr=useSolar?'12:00':document.getElementById('birthTime').value;
   if(!timeStr)return;
   const[y,mo,d]=dateStr.split('-').map(Number),[h,mi]=timeStr.split(':').map(Number);
-  const[lat,lon]=getCoords(place),tz=Math.round(lon/15),jd=toJD(y,mo,d,h,mi,tz);
+  const btn=document.getElementById('genBtn');
+  btn.textContent='📍 場所を取得中...';btn.disabled=true;
+  const[lat,lon]=await getCoords(place);
+  btn.textContent='✦ チャートを生成する ✦';btn.disabled=false;
+  const tz=Math.round(lon/15),jd=toJD(y,mo,d,h,mi,tz);
   const pos={};PLANETS.forEach(p=>pos[p]=calcPlanet(p,jd));
   const houses=useSolar?calcSolarHouses(pos.Sun):calcHouses(jd,lat,lon);
   CD={pos,houses,birthDate:dateStr,birthPlace:place,solarHouse:useSolar};
@@ -1164,7 +1179,7 @@ function applyProfile(id){
   document.getElementById('birthPlace').value=p.birthPlace;
   activeProfileId=id;
   renderProfiles();
-  calculate();
+  calculate();  // async - intentionally not awaited here
 }
 
 function deleteProfile(e,id){
