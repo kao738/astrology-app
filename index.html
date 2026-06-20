@@ -866,6 +866,11 @@ function getTodayPos(){
   const p={};PLANETS.forEach(pl=>p[pl]=calcPlanet(pl,jd));
   return p;
 }
+function getTransitHouses(){
+  const jd=getTransitJD();
+  if(!jd)return null;
+  return calcHouses(jd,35.6762,139.6503);
+}
 
 function renderAll(){
   const tp=getTodayPos();
@@ -883,9 +888,10 @@ function renderPlanets(tp){
     html+=`<div class="pcard"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
   });
   if(tp){
-    html+='<div style="grid-column:1/-1;font-size:10px;font-family:sans-serif;color:#c0392b;font-weight:700;letter-spacing:0.1em;margin-top:4px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.2);">— トランジット天体 —</div>';
+    const tHouses=getTransitHouses();
+    html+='<div style="grid-column:1/-1;font-size:10px;font-family:sans-serif;color:#c0392b;font-weight:700;letter-spacing:0.1em;margin-top:4px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.2);">— トランジット天体（東京基準） —</div>';
     PLANETS.forEach(p=>{
-      const s=degToSDD(tp[p]),h=planetHouse(tp[p],CD.houses);
+      const s=degToSDD(tp[p]),h=tHouses?planetHouse(tp[p],tHouses):planetHouse(tp[p],CD.houses);
       html+=`<div class="pcard transit-card"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
     });
   }
@@ -988,7 +994,7 @@ function dlChart(id){if(!CD)return;const a=document.createElement('a');a.downloa
 document.getElementById('dlChartBtn').addEventListener('click',()=>dlChart('natalChart'));
 document.getElementById('dlBigChartBtn').addEventListener('click',()=>dlChart('bigChart'));
 
-document.getElementById('dlPlanetsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();const{pos,houses}=CD;const rows=[['種別','天体','サイン','度','分','ハウス']];PLANETS.forEach(p=>{const s=degToSDD(pos[p]);rows.push(['ネイタル',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(pos[p],houses)]);});if(tp)PLANETS.forEach(p=>{const s=degToSDD(tp[p]);rows.push(['トランジット',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(tp[p],houses)]);});downloadCSV(`planets-${CD.birthDate}.csv`,rows);});
+document.getElementById('dlPlanetsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();const tH=getTransitHouses();const{pos,houses}=CD;const rows=[['種別','天体','サイン','度','分','ハウス']];PLANETS.forEach(p=>{const s=degToSDD(pos[p]);rows.push(['ネイタル',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(pos[p],houses)]);});if(tp)PLANETS.forEach(p=>{const s=degToSDD(tp[p]);rows.push(['トランジット',PNAMES[p],SIGNS[s.si],s.d,s.m,tH?planetHouse(tp[p],tH):planetHouse(tp[p],houses)]);});downloadCSV(`planets-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlHousesBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['ハウス','サイン','度','分']];CD.houses.forEach((h,i)=>{const s=degToSDD(h);rows.push([`H${i+1}`,SIGNS[s.si],s.d,s.m]);});downloadCSV(`houses-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlAspectsBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['天体1','天体2','アスペクト','角度','オーブ']];for(let i=0;i<PLANETS.length;i++)for(let j=i+1;j<PLANETS.length;j++){const asp=getAspect(CD.pos[PLANETS[i]],CD.pos[PLANETS[j]]);if(asp)rows.push([PNAMES[PLANETS[i]],PNAMES[PLANETS[j]],asp.name,asp.ang+'°',asp.orb+'°']);}downloadCSV(`aspects-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlTransitsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();if(!tp)return;const rows=[['T天体','アスペクト','N天体','オーブ']];PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{const asp=getAspect(tp[tpl],CD.pos[npl]);if(asp)rows.push([PNAMES[tpl],asp.name,PNAMES[npl],asp.orb+'°']);}));downloadCSV(`transits-${CD.birthDate}.csv`,rows);});
