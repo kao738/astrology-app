@@ -1,4 +1,10 @@
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>星読みアプリ</title>
+</head>
+<body>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -137,6 +143,17 @@
 .compare-btn:hover { background: var(--navy2); }
 .compare-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 520px) { .compare-panels { grid-template-columns: 1fr; } }
+/* === 年間トランジット表 === */
+.eph-ctrl { background: #fff; border: 1.5px solid rgba(26,42,74,0.1); border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.eph-field { display: flex; flex-direction: column; gap: 4px; }
+.eph-table-wrap { overflow-x: auto; max-width: 100%; border-radius: 8px; border: 1px solid rgba(26,42,74,0.1); max-height: 560px; overflow-y: auto; }
+.eph-table { border-collapse: collapse; font-family: sans-serif; font-size: 11px; white-space: nowrap; background: #fff; }
+.eph-table th { font-size: 9px; letter-spacing: 0.03em; color: var(--navy); background: #eef0f5; padding: 6px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid rgba(26,42,74,0.1); border-left: 1px solid rgba(26,42,74,0.06); position: sticky; top: 0; z-index: 1; }
+.eph-table td { font-size: 11px; padding: 5px 8px; border-bottom: 1px solid rgba(26,42,74,0.06); border-left: 1px solid rgba(26,42,74,0.04); color: var(--text); text-align: center; }
+.eph-table td.eph-date, .eph-table th.eph-date-h { position: sticky; left: 0; background: #fff; font-weight: 700; text-align: left; border-left: none; }
+.eph-table th.eph-date-h { background: #eef0f5; z-index: 2; }
+.eph-r { color: #c0392b; font-weight: 700; }
+.eph-d { color: var(--muted); }
 .compare-col { background: #fff; border: 1.5px solid rgba(26,42,74,0.12); border-radius: 8px; padding: 12px; }
 .compare-col-a .compare-col-header { color: #1a2a4a; border-bottom: 2px solid #1a2a4a; }
 .compare-col-b .compare-col-header { color: #c0392b; border-bottom: 2px solid #c0392b; }
@@ -234,6 +251,7 @@
       <button class="tab-btn" data-tab="numerology">数秘</button>
       <button class="tab-btn" data-tab="timeline">月間ライン</button>
       <button class="tab-btn" data-tab="compare">日付比較</button>
+      <button class="tab-btn" data-tab="ephemeris">年間トランジット表</button>
     </div>
 
     <div id="pane-chart" class="tab-pane active">
@@ -292,6 +310,57 @@
         <button class="compare-btn" id="compareBtn">✦ 比較する</button>
       </div>
       <div id="compareResult"><p style="color:var(--muted);font-size:12px;font-family:sans-serif;padding:0.5rem">日付A・Bを入力して「比較する」を押してください</p></div>
+    </div>
+
+    <div id="pane-ephemeris" class="tab-pane">
+      <div class="eph-ctrl">
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">年</span>
+          <input class="transit-date-input" type="number" id="ephYear" style="width:80px" min="1900" max="2100">
+        </div>
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">月</span>
+          <select class="transit-date-input" id="ephMonth">
+            <option value="0">全年（1〜12月）</option>
+            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+            <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+            <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+          </select>
+        </div>
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">ハウス基準地</span>
+          <select class="transit-date-input" id="ephRefCity">
+            <option value="東京">東京（日本）</option>
+            <option value="大阪">大阪（日本）</option>
+            <option value="札幌">札幌（日本）</option>
+            <option value="那覇">那覇（日本）</option>
+            <option value="new york">ニューヨーク（米国）</option>
+            <option value="los angeles">ロサンゼルス（米国）</option>
+            <option value="chicago">シカゴ（米国）</option>
+            <option value="london">ロンドン（英国）</option>
+            <option value="paris">パリ（フランス）</option>
+            <option value="berlin">ベルリン（ドイツ）</option>
+            <option value="rome">ローマ（イタリア）</option>
+            <option value="toronto">トロント（カナダ）</option>
+            <option value="sydney">シドニー（豪州）</option>
+            <option value="beijing">北京（中国）</option>
+            <option value="seoul">ソウル（韓国）</option>
+            <option value="singapore">シンガポール</option>
+            <option value="custom">カスタム（緯度・経度入力）</option>
+          </select>
+        </div>
+        <div class="eph-field" id="ephCustomLL" style="display:none;flex-direction:row;gap:8px;">
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">緯度</span><input class="transit-date-input" type="number" id="ephLat" style="width:90px" step="0.0001" placeholder="35.6762"></div>
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">経度</span><input class="transit-date-input" type="number" id="ephLon" style="width:90px" step="0.0001" placeholder="139.6503"></div>
+        </div>
+        <button class="today-btn" id="ephGenBtn" style="padding:8px 16px">✦ 表を生成</button>
+        <button class="action-btn" id="ephCsvBtn" style="display:none">↓ CSV保存</button>
+        <button class="action-btn" id="ephCopyBtn" style="display:none">⧉ コピー（スプシ貼付用）</button>
+      </div>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。</p>
+      <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
+      <div id="ephTableWrap" class="eph-table-wrap"></div>
     </div>
   </div>
 </div>
@@ -999,6 +1068,120 @@ document.getElementById('dlHousesBtn').addEventListener('click',()=>{if(!CD)retu
 document.getElementById('dlAspectsBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['天体1','天体2','アスペクト','角度','オーブ']];for(let i=0;i<PLANETS.length;i++)for(let j=i+1;j<PLANETS.length;j++){const asp=getAspect(CD.pos[PLANETS[i]],CD.pos[PLANETS[j]]);if(asp)rows.push([PNAMES[PLANETS[i]],PNAMES[PLANETS[j]],asp.name,asp.ang+'°',asp.orb+'°']);}downloadCSV(`aspects-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlTransitsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();if(!tp)return;const rows=[['T天体','アスペクト','N天体','オーブ']];PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{const asp=getAspect(tp[tpl],CD.pos[npl]);if(asp)rows.push([PNAMES[tpl],asp.name,PNAMES[npl],asp.orb+'°']);}));downloadCSV(`transits-${CD.birthDate}.csv`,rows);});
 
+// ===== 年間トランジット表（エフェメリス） =====
+let EPH_ROWS=null;
+function circDiff(a,b){let d=a-b;while(d>180)d-=360;while(d<-180)d+=360;return d;}
+function getEphRefCoords(){
+  const sel=document.getElementById('ephRefCity').value;
+  if(sel==='custom'){
+    const la=parseFloat(document.getElementById('ephLat').value),lo=parseFloat(document.getElementById('ephLon').value);
+    if(isNaN(la)||isNaN(lo))return null;
+    return[la,lo];
+  }
+  return CITIES[sel]||null;
+}
+function buildEphemerisRows(year,month,lat,lon){
+  const tz=Math.round(lon/15);
+  const startMo=month===0?1:month,endMo=month===0?12:month;
+  const startDate=new Date(year,startMo-1,1),endDate=new Date(year,endMo,0);
+  const prevRef=new Date(startDate);prevRef.setDate(prevRef.getDate()-1);
+  const prevJd=toJD(prevRef.getFullYear(),prevRef.getMonth()+1,prevRef.getDate(),0,0,tz);
+  let prevPos={};PLANETS.forEach(p=>prevPos[p]=calcPlanet(p,prevJd));
+  const rows=[];
+  let cur=new Date(startDate);
+  while(cur<=endDate){
+    const y=cur.getFullYear(),mo=cur.getMonth()+1,d=cur.getDate();
+    const jd=toJD(y,mo,d,0,0,tz);
+    const houses=calcHouses(jd,lat,lon);
+    const pos={};PLANETS.forEach(p=>pos[p]=calcPlanet(p,jd));
+    const planets={};
+    PLANETS.forEach(p=>{
+      const s=degToSDD(pos[p]),house=planetHouse(pos[p],houses);
+      const retro=(p==='Sun'||p==='Moon')?'-':(circDiff(pos[p],prevPos[p])<0?'R':'D');
+      planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro};
+    });
+    rows.push({dateStr:`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,planets});
+    prevPos=pos;
+    cur.setDate(cur.getDate()+1);
+  }
+  return rows;
+}
+function renderEphemerisTable(rows){
+  let thead='<tr><th class="eph-date-h">日付</th>';
+  PLANETS.forEach(p=>{thead+=`<th>${PSYM[p]}${PNAMES[p]}<br>サイン</th><th>${PSYM[p]}${PNAMES[p]}<br>H</th><th>${PSYM[p]}${PNAMES[p]}<br>順逆</th>`;});
+  thead+='</tr>';
+  let tbody='';
+  rows.forEach(r=>{
+    tbody+=`<tr><td class="eph-date">${r.dateStr}</td>`;
+    PLANETS.forEach(p=>{
+      const pd=r.planets[p];
+      const cls=pd.retro==='R'?'eph-r':(pd.retro==='D'?'eph-d':'');
+      tbody+=`<td>${pd.sign}${pd.deg}°</td><td>H${pd.house}</td><td class="${cls}">${pd.retro}</td>`;
+    });
+    tbody+='</tr>';
+  });
+  document.getElementById('ephTableWrap').innerHTML=`<table class="eph-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+function ephRowsToTable(rows){
+  const header=['日付'];
+  PLANETS.forEach(p=>header.push(`${PNAMES[p]}_サイン`,`${PNAMES[p]}_H`,`${PNAMES[p]}_順逆`));
+  const body=rows.map(r=>{
+    const row=[r.dateStr];
+    PLANETS.forEach(p=>{const pd=r.planets[p];row.push(`${pd.sign}${pd.deg}°${String(pd.min).padStart(2,'0')}'`,`H${pd.house}`,pd.retro);});
+    return row;
+  });
+  return[header,...body];
+}
+document.getElementById('ephRefCity').addEventListener('change',function(){
+  document.getElementById('ephCustomLL').style.display=this.value==='custom'?'flex':'none';
+});
+document.getElementById('ephGenBtn').addEventListener('click',()=>{
+  const year=parseInt(document.getElementById('ephYear').value,10);
+  const month=parseInt(document.getElementById('ephMonth').value,10);
+  const coords=getEphRefCoords();
+  const status=document.getElementById('ephStatus');
+  const csvBtn=document.getElementById('ephCsvBtn'),copyBtn=document.getElementById('ephCopyBtn');
+  if(!year||isNaN(year)){status.textContent='⚠ 年を入力してください';return;}
+  if(!coords){status.textContent='⚠ 基準地の緯度・経度を正しく入力してください';return;}
+  const btn=document.getElementById('ephGenBtn');
+  btn.disabled=true;btn.textContent='計算中...';
+  status.textContent='計算中…（全年指定は数秒かかる場合があります）';
+  csvBtn.style.display='none';copyBtn.style.display='none';
+  document.getElementById('ephTableWrap').innerHTML='';
+  setTimeout(()=>{
+    try{
+      const rows=buildEphemerisRows(year,month,coords[0],coords[1]);
+      EPH_ROWS=rows;
+      renderEphemerisTable(rows);
+      status.textContent=`${rows.length}日分を生成しました（基準地: 緯度${coords[0].toFixed(2)}° 経度${coords[1].toFixed(2)}°）`;
+      csvBtn.style.display='inline-block';copyBtn.style.display='inline-block';
+    }catch(e){
+      status.textContent='⚠ 計算中にエラーが発生しました: '+e.message;
+    }
+    btn.disabled=false;btn.textContent='✦ 表を生成';
+  },30);
+});
+document.getElementById('ephCsvBtn').addEventListener('click',()=>{
+  if(!EPH_ROWS)return;
+  const table=ephRowsToTable(EPH_ROWS);
+  const y=document.getElementById('ephYear').value,m=document.getElementById('ephMonth').value;
+  downloadCSV(`transit-ephemeris-${y}-${m==='0'?'full':m}.csv`,table);
+});
+document.getElementById('ephCopyBtn').addEventListener('click',async()=>{
+  if(!EPH_ROWS)return;
+  const table=ephRowsToTable(EPH_ROWS);
+  const tsv=table.map(r=>r.join('\t')).join('\n');
+  const btn=document.getElementById('ephCopyBtn'),orig=btn.textContent;
+  try{
+    await navigator.clipboard.writeText(tsv);
+    btn.textContent='✓ コピーしました';
+  }catch(e){
+    btn.textContent='⚠ コピー失敗';
+  }
+  setTimeout(()=>{btn.textContent=orig;},1500);
+});
+(function initEphemeris(){document.getElementById('ephYear').value=new Date().getFullYear();})();
+
 // ===== 数秘術 =====
 const NUM_MEANINGS={
   1:{title:'先駆者',keyword:'独立・開拓・意志',desc:'自らの道を切り開く力を持つ数。リーダーシップと独自性が人生のテーマ。'},
@@ -1322,3 +1505,5 @@ function renderComparison(){
 }
 document.getElementById('compareBtn').addEventListener('click',renderComparison);
 </script>
+</body>
+</html>
