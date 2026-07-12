@@ -329,6 +329,13 @@
           </select>
         </div>
         <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">ハウス基準</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-family:sans-serif;font-size:11px;color:var(--navy);padding:9px 0">
+            <input type="checkbox" id="ephUseNatalHouses" style="accent-color:var(--navy);width:14px;height:14px">
+            自分のネイタルハウスを使う
+          </label>
+        </div>
+        <div class="eph-field" id="ephRefCityField">
           <span class="form-label" style="font-size:9px;opacity:0.7">ハウス基準地</span>
           <select class="transit-date-input" id="ephRefCity">
             <option value="東京">東京（日本）</option>
@@ -358,7 +365,7 @@
         <button class="action-btn" id="ephCsvBtn" style="display:none">↓ CSV保存</button>
         <button class="action-btn" id="ephCopyBtn" style="display:none">⧉ コピー（スプシ貼付用）</button>
       </div>
-      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。</p>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。</p>
       <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ephTableWrap" class="eph-table-wrap"></div>
     </div>
@@ -1091,7 +1098,7 @@ function jdToLocalHM(jd,tz){
   return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(Math.round(mins%60)).padStart(2,'0')}`;
 }
 
-function buildEphemerisRows(year,month,lat,lon){
+function buildEphemerisRows(year,month,lat,lon,natalHouses){
   const tz=Math.round(lon/15);
   const startMo=month===0?1:month,endMo=month===0?12:month;
   const startDate=new Date(year,startMo-1,1),endDate=new Date(year,endMo,0);
@@ -1116,7 +1123,7 @@ function buildEphemerisRows(year,month,lat,lon){
   return days.map((day,i)=>{
     const nextDayPos=i+1<days.length?days[i+1].pos:nextPos;
     const nextDayJd=i+1<days.length?days[i+1].jd:nextJd;
-    const houses=calcHouses(day.jd,lat,lon);
+    const houses=natalHouses||calcHouses(day.jd,lat,lon);
     const planets={};
     PLANETS.forEach(p=>{
       const s=degToSDD(day.pos[p]),house=planetHouse(day.pos[p],houses);
@@ -1163,14 +1170,22 @@ function ephRowsToTable(rows){
 document.getElementById('ephRefCity').addEventListener('change',function(){
   document.getElementById('ephCustomLL').style.display=this.value==='custom'?'flex':'none';
 });
+document.getElementById('ephUseNatalHouses').addEventListener('change',function(){
+  const explain=document.getElementById('ephExplainText');
+  explain.textContent=this.checked
+    ?'各日0:00時点（基準地のローカルタイム換算）の天体位置・順行(D)/逆行(R)の一覧。ハウスはあなたのネイタルチャートの house cusp（固定）で判定します。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します。'
+    :'各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。';
+});
 document.getElementById('ephGenBtn').addEventListener('click',()=>{
   const year=parseInt(document.getElementById('ephYear').value,10);
   const month=parseInt(document.getElementById('ephMonth').value,10);
   const coords=getEphRefCoords();
+  const useNatal=document.getElementById('ephUseNatalHouses').checked;
   const status=document.getElementById('ephStatus');
   const csvBtn=document.getElementById('ephCsvBtn'),copyBtn=document.getElementById('ephCopyBtn');
   if(!year||isNaN(year)){status.textContent='⚠ 年を入力してください';return;}
   if(!coords){status.textContent='⚠ 基準地の緯度・経度を正しく入力してください';return;}
+  if(useNatal&&!CD){status.textContent='⚠ 先にネイタルチャートを生成してください';return;}
   const btn=document.getElementById('ephGenBtn');
   btn.disabled=true;btn.textContent='計算中...';
   status.textContent='計算中…（全年指定は数秒かかる場合があります）';
@@ -1178,10 +1193,12 @@ document.getElementById('ephGenBtn').addEventListener('click',()=>{
   document.getElementById('ephTableWrap').innerHTML='';
   setTimeout(()=>{
     try{
-      const rows=buildEphemerisRows(year,month,coords[0],coords[1]);
+      const rows=buildEphemerisRows(year,month,coords[0],coords[1],useNatal?CD.houses:null);
       EPH_ROWS=rows;
       renderEphemerisTable(rows);
-      status.textContent=`${rows.length}日分を生成しました（基準地: 緯度${coords[0].toFixed(2)}° 経度${coords[1].toFixed(2)}°）`;
+      status.textContent=useNatal
+        ?`${rows.length}日分を生成しました（ハウスはネイタルチャート基準／天体位置サンプリングは緯度${coords[0].toFixed(2)}° 経度${coords[1].toFixed(2)}°）`
+        :`${rows.length}日分を生成しました（基準地: 緯度${coords[0].toFixed(2)}° 経度${coords[1].toFixed(2)}°）`;
       csvBtn.style.display='inline-block';copyBtn.style.display='inline-block';
     }catch(e){
       status.textContent='⚠ 計算中にエラーが発生しました: '+e.message;
