@@ -358,7 +358,7 @@
         <button class="action-btn" id="ephCsvBtn" style="display:none">↓ CSV保存</button>
         <button class="action-btn" id="ephCopyBtn" style="display:none">⧉ コピー（スプシ貼付用）</button>
       </div>
-      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。</p>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。</p>
       <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ephTableWrap" class="eph-table-wrap"></div>
     </div>
@@ -935,12 +935,6 @@ function getTodayPos(){
   const p={};PLANETS.forEach(pl=>p[pl]=calcPlanet(pl,jd));
   return p;
 }
-function getTransitHouses(){
-  const jd=getTransitJD();
-  if(!jd)return null;
-  return calcHouses(jd,35.6762,139.6503);
-}
-
 function renderAll(){
   const tp=getTodayPos();
   drawChart(document.getElementById('natalChart'),CD.pos,CD.houses,tp,320);
@@ -957,10 +951,9 @@ function renderPlanets(tp){
     html+=`<div class="pcard"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
   });
   if(tp){
-    const tHouses=getTransitHouses();
-    html+='<div style="grid-column:1/-1;font-size:10px;font-family:sans-serif;color:#c0392b;font-weight:700;letter-spacing:0.1em;margin-top:4px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.2);">— トランジット天体（東京基準） —</div>';
+    html+='<div style="grid-column:1/-1;font-size:10px;font-family:sans-serif;color:#c0392b;font-weight:700;letter-spacing:0.1em;margin-top:4px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.2);">— トランジット天体（ネイタルハウス基準） —</div>';
     PLANETS.forEach(p=>{
-      const s=degToSDD(tp[p]),h=tHouses?planetHouse(tp[p],tHouses):planetHouse(tp[p],CD.houses);
+      const s=degToSDD(tp[p]),h=planetHouse(tp[p],CD.houses);
       html+=`<div class="pcard transit-card"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
     });
   }
@@ -1063,7 +1056,7 @@ function dlChart(id){if(!CD)return;const a=document.createElement('a');a.downloa
 document.getElementById('dlChartBtn').addEventListener('click',()=>dlChart('natalChart'));
 document.getElementById('dlBigChartBtn').addEventListener('click',()=>dlChart('bigChart'));
 
-document.getElementById('dlPlanetsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();const tH=getTransitHouses();const{pos,houses}=CD;const rows=[['種別','天体','サイン','度','分','ハウス']];PLANETS.forEach(p=>{const s=degToSDD(pos[p]);rows.push(['ネイタル',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(pos[p],houses)]);});if(tp)PLANETS.forEach(p=>{const s=degToSDD(tp[p]);rows.push(['トランジット',PNAMES[p],SIGNS[s.si],s.d,s.m,tH?planetHouse(tp[p],tH):planetHouse(tp[p],houses)]);});downloadCSV(`planets-${CD.birthDate}.csv`,rows);});
+document.getElementById('dlPlanetsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();const{pos,houses}=CD;const rows=[['種別','天体','サイン','度','分','ハウス']];PLANETS.forEach(p=>{const s=degToSDD(pos[p]);rows.push(['ネイタル',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(pos[p],houses)]);});if(tp)PLANETS.forEach(p=>{const s=degToSDD(tp[p]);rows.push(['トランジット',PNAMES[p],SIGNS[s.si],s.d,s.m,planetHouse(tp[p],houses)]);});downloadCSV(`planets-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlHousesBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['ハウス','サイン','度','分']];CD.houses.forEach((h,i)=>{const s=degToSDD(h);rows.push([`H${i+1}`,SIGNS[s.si],s.d,s.m]);});downloadCSV(`houses-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlAspectsBtn').addEventListener('click',()=>{if(!CD)return;const rows=[['天体1','天体2','アスペクト','角度','オーブ']];for(let i=0;i<PLANETS.length;i++)for(let j=i+1;j<PLANETS.length;j++){const asp=getAspect(CD.pos[PLANETS[i]],CD.pos[PLANETS[j]]);if(asp)rows.push([PNAMES[PLANETS[i]],PNAMES[PLANETS[j]],asp.name,asp.ang+'°',asp.orb+'°']);}downloadCSV(`aspects-${CD.birthDate}.csv`,rows);});
 document.getElementById('dlTransitsBtn').addEventListener('click',()=>{if(!CD)return;const tp=getTodayPos();if(!tp)return;const rows=[['T天体','アスペクト','N天体','オーブ']];PLANETS.forEach(tpl=>PLANETS.forEach(npl=>{const asp=getAspect(tp[tpl],CD.pos[npl]);if(asp)rows.push([PNAMES[tpl],asp.name,PNAMES[npl],asp.orb+'°']);}));downloadCSV(`transits-${CD.birthDate}.csv`,rows);});
@@ -1080,6 +1073,24 @@ function getEphRefCoords(){
   }
   return CITIES[sel]||null;
 }
+// 2分探索でサイン境界（イングレス）の正確な瞬間を求める
+function findIngressJD(p,jdA,jdB,startSign){
+  let lo=jdA,hi=jdB;
+  for(let i=0;i<24;i++){
+    const mid=(lo+hi)/2;
+    const s=Math.floor((((calcPlanet(p,mid)%360)+360)%360)/30);
+    if(s===startSign)lo=mid;else hi=mid;
+  }
+  return hi;
+}
+// JD（UT基準）を基準地のローカル時刻HH:MMに変換
+function jdToLocalHM(jd,tz){
+  const date=new Date((jd-2440587.5)*86400000);
+  let mins=date.getUTCHours()*60+date.getUTCMinutes()+tz*60;
+  mins=((mins%1440)+1440)%1440;
+  return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(Math.round(mins%60)).padStart(2,'0')}`;
+}
+
 function buildEphemerisRows(year,month,lat,lon){
   const tz=Math.round(lon/15);
   const startMo=month===0?1:month,endMo=month===0?12:month;
@@ -1087,24 +1098,40 @@ function buildEphemerisRows(year,month,lat,lon){
   const prevRef=new Date(startDate);prevRef.setDate(prevRef.getDate()-1);
   const prevJd=toJD(prevRef.getFullYear(),prevRef.getMonth()+1,prevRef.getDate(),0,0,tz);
   let prevPos={};PLANETS.forEach(p=>prevPos[p]=calcPlanet(p,prevJd));
-  const rows=[];
+
+  // 当日0:00の位置に加え、翌日0:00の位置も保持し、日中のサイン移動（イングレス）を検出する
+  const days=[];
   let cur=new Date(startDate);
   while(cur<=endDate){
     const y=cur.getFullYear(),mo=cur.getMonth()+1,d=cur.getDate();
     const jd=toJD(y,mo,d,0,0,tz);
-    const houses=calcHouses(jd,lat,lon);
     const pos={};PLANETS.forEach(p=>pos[p]=calcPlanet(p,jd));
-    const planets={};
-    PLANETS.forEach(p=>{
-      const s=degToSDD(pos[p]),house=planetHouse(pos[p],houses);
-      const retro=(p==='Sun'||p==='Moon')?'-':(circDiff(pos[p],prevPos[p])<0?'R':'D');
-      planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro};
-    });
-    rows.push({dateStr:`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,planets});
-    prevPos=pos;
+    days.push({jd,y,mo,d,pos});
     cur.setDate(cur.getDate()+1);
   }
-  return rows;
+  const nextRef=new Date(endDate);nextRef.setDate(nextRef.getDate()+1);
+  const nextJd=toJD(nextRef.getFullYear(),nextRef.getMonth()+1,nextRef.getDate(),0,0,tz);
+  const nextPos={};PLANETS.forEach(p=>nextPos[p]=calcPlanet(p,nextJd));
+
+  return days.map((day,i)=>{
+    const nextDayPos=i+1<days.length?days[i+1].pos:nextPos;
+    const nextDayJd=i+1<days.length?days[i+1].jd:nextJd;
+    const houses=calcHouses(day.jd,lat,lon);
+    const planets={};
+    PLANETS.forEach(p=>{
+      const s=degToSDD(day.pos[p]),house=planetHouse(day.pos[p],houses);
+      const pv=i===0?prevPos[p]:days[i-1].pos[p];
+      const retro=(p==='Sun'||p==='Moon')?'-':(circDiff(day.pos[p],pv)<0?'R':'D');
+      const signNext=Math.floor((((nextDayPos[p]%360)+360)%360)/30);
+      let ingress=null;
+      if(signNext!==s.si){
+        const ingJd=findIngressJD(p,day.jd,nextDayJd,s.si);
+        ingress={time:jdToLocalHM(ingJd,tz),toSign:SIGNS[signNext]};
+      }
+      planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro,ingress};
+    });
+    return{dateStr:`${day.y}-${String(day.mo).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`,planets};
+  });
 }
 function renderEphemerisTable(rows){
   let thead='<tr><th class="eph-date-h">日付</th>';
@@ -1116,7 +1143,8 @@ function renderEphemerisTable(rows){
     PLANETS.forEach(p=>{
       const pd=r.planets[p];
       const cls=pd.retro==='R'?'eph-r':(pd.retro==='D'?'eph-d':'');
-      tbody+=`<td>${pd.sign}${pd.deg}°</td><td>H${pd.house}</td><td class="${cls}">${pd.retro}</td>`;
+      const ing=pd.ingress?`<br><span style="font-size:9px;color:var(--gold);font-weight:700;white-space:nowrap">→${pd.ingress.toSign.slice(0,-1)} ${pd.ingress.time}</span>`:'';
+      tbody+=`<td>${pd.sign}${pd.deg}°${ing}</td><td>H${pd.house}</td><td class="${cls}">${pd.retro}</td>`;
     });
     tbody+='</tr>';
   });
@@ -1124,10 +1152,10 @@ function renderEphemerisTable(rows){
 }
 function ephRowsToTable(rows){
   const header=['日付'];
-  PLANETS.forEach(p=>header.push(`${PNAMES[p]}_サイン`,`${PNAMES[p]}_H`,`${PNAMES[p]}_順逆`));
+  PLANETS.forEach(p=>header.push(`${PNAMES[p]}_サイン`,`${PNAMES[p]}_H`,`${PNAMES[p]}_順逆`,`${PNAMES[p]}_移動時刻`));
   const body=rows.map(r=>{
     const row=[r.dateStr];
-    PLANETS.forEach(p=>{const pd=r.planets[p];row.push(`${pd.sign}${pd.deg}°${String(pd.min).padStart(2,'0')}'`,`H${pd.house}`,pd.retro);});
+    PLANETS.forEach(p=>{const pd=r.planets[p];row.push(`${pd.sign}${pd.deg}°${String(pd.min).padStart(2,'0')}'`,`H${pd.house}`,pd.retro,pd.ingress?`${pd.ingress.time}→${pd.ingress.toSign}`:'');});
     return row;
   });
   return[header,...body];
