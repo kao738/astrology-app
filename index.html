@@ -252,6 +252,7 @@
       <button class="tab-btn" data-tab="timeline">月間ライン</button>
       <button class="tab-btn" data-tab="compare">日付比較</button>
       <button class="tab-btn" data-tab="ephemeris">年間トランジット表</button>
+      <button class="tab-btn" data-tab="longterm">長期トランジット検証</button>
     </div>
 
     <div id="pane-chart" class="tab-pane active">
@@ -368,6 +369,42 @@
       <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。</p>
       <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ephTableWrap" class="eph-table-wrap"></div>
+    </div>
+
+    <div id="pane-longterm" class="tab-pane">
+      <div class="eph-ctrl">
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">起点日</span>
+          <input class="transit-date-input" type="date" id="ltStartDate">
+        </div>
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">期間</span>
+          <select class="transit-date-input" id="ltYears">
+            <option value="1">1年</option>
+            <option value="3">3年</option>
+            <option value="6" selected>6年</option>
+            <option value="12">12年</option>
+          </select>
+        </div>
+        <div class="eph-field" style="flex:1;min-width:260px">
+          <span class="form-label" style="font-size:9px;opacity:0.7">対象天体（トランジット側）</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;padding:9px 0">
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Mars" style="accent-color:var(--navy)"> ♂火星</label>
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Jupiter" checked style="accent-color:var(--navy)"> ♃木星</label>
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Saturn" checked style="accent-color:var(--navy)"> ♄土星</label>
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Uranus" checked style="accent-color:var(--navy)"> ♅天王星</label>
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Neptune" checked style="accent-color:var(--navy)"> ♆海王星</label>
+            <label style="display:flex;align-items:center;gap:4px;font-family:sans-serif;font-size:11px;color:var(--navy);cursor:pointer"><input type="checkbox" class="lt-planet-check" value="Pluto" checked style="accent-color:var(--navy)"> ♇冥王星</label>
+          </div>
+        </div>
+        <button class="today-btn" id="ltGenBtn" style="padding:8px 16px">✦ 検証レポートを生成</button>
+        <button class="action-btn" id="ltCsvBtn" style="display:none">↓ CSV保存</button>
+      </div>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;">
+        選択した期間・天体について、ネイタルチャートを基準に「サイン移動」「ハウス移動（ネイタルハウス固定）」「逆行/順行の切り替わり」「ネイタル10天体との正確なアスペクト成立日（オーブ0°の瞬間）」を自動検出します。逆行による同じアスペクトの複数回成立（スリーパス）もそのまま検出されます。太陽・水星・金星・月は変化が速すぎて長期検証に向かないため対象外です（日々の影響は「トランジット一覧」「月間ライン」タブをご利用ください）。
+      </p>
+      <div id="ltStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
+      <div id="ltResultWrap"></div>
     </div>
   </div>
 </div>
@@ -1226,6 +1263,233 @@ document.getElementById('ephCopyBtn').addEventListener('click',async()=>{
   setTimeout(()=>{btn.textContent=orig;},1500);
 });
 (function initEphemeris(){document.getElementById('ephYear').value=new Date().getFullYear();})();
+
+// ===== 長期トランジット検証 =====
+const LT_STEP={Mars:2,Jupiter:5,Saturn:8,Uranus:12,Neptune:15,Pluto:15};
+const MAJOR_ASPECTS=[{name:'コンジャンクション',sym:'☌',ang:0,cls:'conj'},{name:'セクスタイル',sym:'⚹',ang:60,cls:'sext'},{name:'スクエア',sym:'□',ang:90,cls:'sq'},{name:'トライン',sym:'△',ang:120,cls:'trine'},{name:'オポジション',sym:'☍',ang:180,cls:'opp'}];
+const LT_TYPE_LABEL={ingress:'サイン移動',house:'ハウス移動',station:'逆行/順行',aspect:'アスペクト成立'};
+let LT_RESULT=null,LT_META=null;
+
+function jdToDate(jd){return new Date((jd-2440587.5)*86400000);}
+function fmtDate(jd){const dt=jdToDate(jd);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;}
+function diffAbs(a,b){return Math.abs(circDiff(a,b));}
+function ltDirectionAt(p,jd){if(p==='Sun'||p==='Moon')return'-';return circDiff(calcPlanet(p,jd+0.5),calcPlanet(p,jd-0.5))>=0?'D':'R';}
+
+function findHouseCrossingJD(p,jdA,jdB,houses,houseA){
+  let lo=jdA,hi=jdB;
+  for(let i=0;i<26;i++){
+    const mid=(lo+hi)/2;
+    const h=planetHouse(calcPlanet(p,mid),houses);
+    if(h===houseA)lo=mid;else hi=mid;
+  }
+  return hi;
+}
+function findStationJD(p,jdA,jdB){
+  const eps=0.15;
+  function vsign(t){return circDiff(calcPlanet(p,t+eps),calcPlanet(p,t-eps))>=0?1:-1;}
+  let lo=jdA,hi=jdB;
+  const signLo=vsign(lo);
+  for(let i=0;i<28;i++){
+    const mid=(lo+hi)/2;
+    if(vsign(mid)===signLo)lo=mid;else hi=mid;
+  }
+  return(lo+hi)/2;
+}
+function findAspectExactJD(p,natalDeg,jdA,jdB,targetAngle){
+  function f(t){return diffAbs(calcPlanet(p,t),natalDeg)-targetAngle;}
+  let lo=jdA,hi=jdB,flo=f(lo);
+  for(let i=0;i<28;i++){
+    const mid=(lo+hi)/2,fm=f(mid);
+    if((fm>=0)===(flo>=0)){lo=mid;flo=fm;}else{hi=mid;}
+  }
+  return(lo+hi)/2;
+}
+
+function buildLongTermReport(planets,startJD,endJD,natalPos,natalHouses){
+  const report={};
+  const allEvents=[];
+
+  planets.forEach(p=>{
+    const step=LT_STEP[p]||5;
+    const samples=[];
+    for(let t=startJD;t<endJD;t+=step)samples.push(t);
+    samples.push(endJD);
+
+    const posAt=t=>calcPlanet(p,t);
+    const signAt=t=>Math.floor((((posAt(t)%360)+360)%360)/30);
+    const houseAt=t=>planetHouse(posAt(t),natalHouses);
+
+    // サイン移動
+    const ingressEvents=[];
+    let prevSign=signAt(samples[0]);
+    for(let i=1;i<samples.length;i++){
+      const s=signAt(samples[i]);
+      if(s!==prevSign){
+        const jd=findIngressJD(p,samples[i-1],samples[i],prevSign);
+        ingressEvents.push({jd,fromSign:prevSign,toSign:s});
+        prevSign=s;
+      }
+    }
+
+    // ハウス移動（ネイタルハウス固定）
+    const houseEvents=[];
+    let prevHouse=houseAt(samples[0]);
+    for(let i=1;i<samples.length;i++){
+      const h=houseAt(samples[i]);
+      if(h!==prevHouse){
+        const jd=findHouseCrossingJD(p,samples[i-1],samples[i],natalHouses,prevHouse);
+        houseEvents.push({jd,fromHouse:prevHouse,toHouse:h});
+        prevHouse=h;
+      }
+    }
+
+    // 逆行/順行の切り替わり
+    const stationEvents=[];
+    if(samples.length>2){
+      let prevDir=circDiff(posAt(samples[1]),posAt(samples[0]))>=0?1:-1;
+      for(let i=2;i<samples.length;i++){
+        const dir=circDiff(posAt(samples[i]),posAt(samples[i-1]))>=0?1:-1;
+        if(dir!==prevDir){
+          const jd=findStationJD(p,samples[i-2],samples[i]);
+          stationEvents.push({jd,toDirection:dir<0?'R':'D'});
+          prevDir=dir;
+        }
+      }
+    }
+
+    // ネイタル10天体との正確なアスペクト成立日
+    const aspectEvents=[];
+    Object.keys(natalPos).forEach(np=>{
+      const nd=natalPos[np];
+      MAJOR_ASPECTS.forEach(({ang,name,sym,cls})=>{
+        let prevDiff=diffAbs(posAt(samples[0]),nd)-ang;
+        for(let i=1;i<samples.length;i++){
+          const curDiff=diffAbs(posAt(samples[i]),nd)-ang;
+          if((prevDiff<=0&&curDiff>0)||(prevDiff>=0&&curDiff<0)){
+            const jd=findAspectExactJD(p,nd,samples[i-1],samples[i],ang);
+            aspectEvents.push({jd,natalPlanet:np,aspectName:name,sym,cls});
+          }
+          prevDiff=curDiff;
+        }
+      });
+    });
+    aspectEvents.sort((a,b)=>a.jd-b.jd);
+
+    function buildPeriods(boundaryEvents,initVal,keyTo){
+      const periods=[];
+      let curVal=initVal,curStart=startJD;
+      boundaryEvents.forEach(e=>{periods.push({value:curVal,start:curStart,end:e.jd});curVal=e[keyTo];curStart=e.jd;});
+      periods.push({value:curVal,start:curStart,end:endJD});
+      return periods;
+    }
+    const signPeriods=buildPeriods(ingressEvents,signAt(samples[0]),'toSign');
+    const housePeriods=buildPeriods(houseEvents,houseAt(samples[0]),'toHouse');
+
+    const retroPeriods=[];
+    let curDir=circDiff(posAt(samples[1]??samples[0]),posAt(samples[0]))>=0?'D':'R';
+    let curStartRJd=startJD;
+    stationEvents.forEach(e=>{
+      if(e.toDirection!==curDir){
+        if(curDir==='R')retroPeriods.push({start:curStartRJd,end:e.jd});
+        curStartRJd=e.jd;curDir=e.toDirection;
+      }
+    });
+    if(curDir==='R')retroPeriods.push({start:curStartRJd,end:endJD});
+
+    report[p]={signPeriods,housePeriods,retroPeriods,stationEvents,aspectEvents};
+
+    ingressEvents.forEach(e=>allEvents.push({jd:e.jd,planet:p,type:'ingress',detail:`${SIGNS[e.fromSign]}→${SIGNS[e.toSign]}`}));
+    houseEvents.forEach(e=>allEvents.push({jd:e.jd,planet:p,type:'house',detail:`第${e.fromHouse}→第${e.toHouse}ハウス`}));
+    stationEvents.forEach(e=>allEvents.push({jd:e.jd,planet:p,type:'station',detail:e.toDirection==='R'?'逆行開始':'順行再開'}));
+    aspectEvents.forEach(e=>allEvents.push({jd:e.jd,planet:p,type:'aspect',detail:`N:${PNAMES[e.natalPlanet]} ${e.sym}${e.aspectName}`}));
+  });
+
+  allEvents.sort((a,b)=>a.jd-b.jd);
+  return{report,allEvents};
+}
+
+function renderLongTermReport(result,meta){
+  const{report,allEvents}=result;
+  let html=`<div style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:10px;">期間：${meta.startStr} 〜 ${meta.endStr}（${meta.years}年） ／ 対象天体：${meta.planets.map(p=>PNAMES[p]).join('・')}</div>`;
+
+  html+=`<p class="sec-title" style="margin-bottom:8px">全体タイムライン（${allEvents.length}件）</p>`;
+  html+=`<div class="eph-table-wrap" style="max-height:420px"><table class="eph-table" style="white-space:normal"><thead><tr><th class="eph-date-h">日付</th><th>天体</th><th>種別</th><th>詳細</th></tr></thead><tbody>`;
+  html+=allEvents.map(e=>`<tr><td class="eph-date">${fmtDate(e.jd)}</td><td>${PSYM[e.planet]} ${PNAMES[e.planet]}</td><td>${LT_TYPE_LABEL[e.type]}</td><td style="text-align:left">${e.detail}</td></tr>`).join('');
+  html+=`</tbody></table></div>`;
+
+  meta.planets.forEach(p=>{
+    const r=report[p];
+    html+=`<details style="margin-top:14px;background:#fff;border:1.5px solid rgba(26,42,74,0.12);border-radius:8px;padding:10px 12px;">
+      <summary style="cursor:pointer;font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);">${PSYM[p]} ${PNAMES[p]} の詳細</summary>
+      <div style="margin-top:10px">
+        <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin-bottom:4px;">サイン滞在期間</p>
+        <table class="asp-table"><thead><tr><th>サイン</th><th>開始</th><th>終了</th><th>日数</th></tr></thead><tbody>
+        ${r.signPeriods.map(sp=>`<tr><td>${SIGNS[sp.value]}</td><td>${fmtDate(sp.start)}</td><td>${fmtDate(sp.end)}</td><td>${Math.round(sp.end-sp.start)}日</td></tr>`).join('')}
+        </tbody></table>
+
+        <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin:10px 0 4px;">ハウス滞在期間（ネイタルハウス基準）</p>
+        <table class="asp-table"><thead><tr><th>ハウス</th><th>開始</th><th>終了</th><th>日数</th></tr></thead><tbody>
+        ${r.housePeriods.map(hp=>`<tr><td>第${hp.value}ハウス</td><td>${fmtDate(hp.start)}</td><td>${fmtDate(hp.end)}</td><td>${Math.round(hp.end-hp.start)}日</td></tr>`).join('')}
+        </tbody></table>
+
+        <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin:10px 0 4px;">逆行期間</p>
+        ${r.retroPeriods.length?`<table class="asp-table"><thead><tr><th>開始</th><th>終了</th><th>日数</th></tr></thead><tbody>
+        ${r.retroPeriods.map(rp=>`<tr><td>${fmtDate(rp.start)}</td><td>${fmtDate(rp.end)}</td><td>${Math.round(rp.end-rp.start)}日</td></tr>`).join('')}
+        </tbody></table>`:'<p style="font-size:11px;color:var(--muted);font-family:sans-serif">期間中の逆行なし</p>'}
+
+        <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin:10px 0 4px;">ネイタルとの正確なアスペクト成立日</p>
+        ${r.aspectEvents.length?`<table class="asp-table"><thead><tr><th>日付</th><th>ネイタル天体</th><th>アスペクト</th><th>順逆</th><th>サイン</th><th>ハウス</th></tr></thead><tbody>
+        ${r.aspectEvents.map(ae=>{const sIdx=Math.floor((((calcPlanet(p,ae.jd)%360)+360)%360)/30);return`<tr><td>${fmtDate(ae.jd)}</td><td>${PNAMES[ae.natalPlanet]}</td><td><span class="abadge a-${ae.cls}">${ae.sym} ${ae.aspectName}</span></td><td>${ltDirectionAt(p,ae.jd)}</td><td>${SIGNS[sIdx]}</td><td>第${planetHouse(calcPlanet(p,ae.jd),CD.houses)}ハウス</td></tr>`;}).join('')}
+        </tbody></table>`:'<p style="font-size:11px;color:var(--muted);font-family:sans-serif">期間中の正確なアスペクト成立なし</p>'}
+      </div>
+    </details>`;
+  });
+
+  document.getElementById('ltResultWrap').innerHTML=html;
+}
+
+(function initLongTerm(){
+  const now=new Date();
+  document.getElementById('ltStartDate').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+})();
+
+document.getElementById('ltGenBtn').addEventListener('click',()=>{
+  if(!CD){alert('先にネイタルチャートを生成してください');return;}
+  const years=parseInt(document.getElementById('ltYears').value,10);
+  const startStr=document.getElementById('ltStartDate').value;
+  if(!startStr){alert('起点日を入力してください');return;}
+  const planets=Array.from(document.querySelectorAll('.lt-planet-check:checked')).map(el=>el.value);
+  if(!planets.length){alert('対象天体を1つ以上選んでください');return;}
+  const[y,mo,d]=startStr.split('-').map(Number);
+  const startJD=toJD(y,mo,d,12,0,9);
+  const endDateObj=new Date(y+years,mo-1,d);
+  const endJD=toJD(endDateObj.getFullYear(),endDateObj.getMonth()+1,endDateObj.getDate(),12,0,9);
+  const status=document.getElementById('ltStatus');
+  const btn=document.getElementById('ltGenBtn');
+  btn.disabled=true;btn.textContent='計算中...';
+  status.textContent='計算中…（対象天体数・期間によっては数秒かかります）';
+  document.getElementById('ltResultWrap').innerHTML='';
+  document.getElementById('ltCsvBtn').style.display='none';
+  setTimeout(()=>{
+    try{
+      const result=buildLongTermReport(planets,startJD,endJD,CD.pos,CD.houses);
+      LT_RESULT=result;
+      LT_META={startStr:fmtDate(startJD),endStr:fmtDate(endJD),years,planets};
+      renderLongTermReport(result,LT_META);
+      status.textContent=`${result.allEvents.length}件のイベントを検出しました`;
+      document.getElementById('ltCsvBtn').style.display='inline-block';
+    }catch(e){
+      status.textContent='⚠ 計算中にエラーが発生しました: '+e.message;
+    }
+    btn.disabled=false;btn.textContent='✦ 検証レポートを生成';
+  },30);
+});
+document.getElementById('ltCsvBtn').addEventListener('click',()=>{
+  if(!LT_RESULT)return;
+  const rows=[['日付','天体','種別','詳細']];
+  LT_RESULT.allEvents.forEach(e=>rows.push([fmtDate(e.jd),PNAMES[e.planet],LT_TYPE_LABEL[e.type],e.detail]));
+  downloadCSV(`longterm-transit-${LT_META.startStr}_${LT_META.years}y.csv`,rows);
+});
 
 // ===== 数秘術 =====
 const NUM_MEANINGS={
