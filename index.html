@@ -157,6 +157,18 @@
 .compare-col { background: #fff; border: 1.5px solid rgba(26,42,74,0.12); border-radius: 8px; padding: 12px; }
 .compare-col-a .compare-col-header { color: #1a2a4a; border-bottom: 2px solid #1a2a4a; }
 .compare-col-b .compare-col-header { color: #c0392b; border-bottom: 2px solid #c0392b; }
+
+/* === 天空イベントカレンダー === */
+.se-view-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.se-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #fff; border: 1.5px solid rgba(26,42,74,0.1); border-radius: 8px; padding: 8px; }
+.se-cal-wh { font-size: 9px; text-align: center; color: var(--muted); font-family: sans-serif; font-weight: 700; padding-bottom: 4px; }
+.se-cal-cell { min-height: 64px; border: 1px solid rgba(26,42,74,0.08); border-radius: 5px; padding: 4px; background: #fafbfc; }
+.se-cal-empty { background: transparent; border: none; }
+.se-cal-daynum { font-size: 10px; color: var(--muted); font-family: sans-serif; margin-bottom: 2px; }
+.se-cal-badges { display: flex; flex-wrap: wrap; gap: 2px; }
+.se-cal-badge { font-size: 13px; cursor: pointer; }
+.se-cal-more { font-size: 9px; color: var(--muted); font-family: sans-serif; align-self: center; }
+.se-row:hover td { background: rgba(26,42,74,0.04); }
 .compare-col-header { font-size: 10px; font-family: sans-serif; font-weight: 700; margin-bottom: 8px; padding-bottom: 7px; letter-spacing: 0.12em; text-transform: uppercase; }
 .compare-item { display: flex; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(26,42,74,0.05); }
 .compare-item:last-child { border-bottom: none; }
@@ -253,6 +265,7 @@
       <button class="tab-btn" data-tab="compare">日付比較</button>
       <button class="tab-btn" data-tab="ephemeris">年間トランジット表</button>
       <button class="tab-btn" data-tab="longterm">長期トランジット検証</button>
+      <button class="tab-btn" data-tab="skyevents">天空イベント</button>
     </div>
 
     <div id="pane-chart" class="tab-pane active">
@@ -406,6 +419,96 @@
       <div id="ltStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ltResultWrap"></div>
     </div>
+
+    <div id="pane-skyevents" class="tab-pane">
+      <div class="eph-ctrl" id="seCtrl">
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">期間</span>
+          <select class="transit-date-input" id="sePeriod">
+            <option value="month">今月</option>
+            <option value="3m">3か月</option>
+            <option value="6m">6か月</option>
+            <option value="1y">1年</option>
+            <option value="custom">カスタム範囲</option>
+          </select>
+        </div>
+        <div class="eph-field" id="seCustomRange" style="display:none;flex-direction:row;gap:8px;">
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">開始日</span><input class="transit-date-input" type="date" id="seStartDate"></div>
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">終了日</span><input class="transit-date-input" type="date" id="seEndDate"></div>
+        </div>
+        <div class="eph-field">
+          <span class="form-label" style="font-size:9px;opacity:0.7">表示形式</span>
+          <div style="display:flex;gap:4px">
+            <button class="action-btn se-view-btn active" data-view="list">☰ リスト</button>
+            <button class="action-btn se-view-btn" data-view="calendar">▦ カレンダー</button>
+          </div>
+        </div>
+        <button class="today-btn" id="seGenBtn" style="padding:8px 16px">✦ 表示する</button>
+        <button class="action-btn" id="seOrbBtn">⚙ オーブ設定</button>
+      </div>
+
+      <details style="margin-bottom:10px;background:#fff;border:1.5px solid rgba(26,42,74,0.1);border-radius:8px;padding:10px 12px;">
+        <summary style="cursor:pointer;font-family:sans-serif;font-size:11px;font-weight:700;color:var(--navy);">フィルター（天体・アスペクト種別・イベント種別・重要度）</summary>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <p class="form-label" style="font-size:9px;opacity:0.7;margin-bottom:4px">天体</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+              <button class="action-btn se-preset-btn" data-preset="all">全天体</button>
+              <button class="action-btn se-preset-btn" data-preset="outer">木星以遠のみ</button>
+              <button class="action-btn se-preset-btn" data-preset="transpersonal">土星以遠のみ（外惑星）</button>
+            </div>
+            <div id="seBodyChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          <div>
+            <p class="form-label" style="font-size:9px;opacity:0.7;margin-bottom:4px">アスペクト種別</p>
+            <div id="seAspectChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          <div>
+            <p class="form-label" style="font-size:9px;opacity:0.7;margin-bottom:4px">イベント種別</p>
+            <div id="seTypeChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            <p style="font-size:10px;color:var(--muted);font-family:sans-serif;margin-top:4px">※複合アスペクト（グランドトライン等）は太陽・月・水星・金星を含めると成立/解消が頻繁すぎるため、天体フィルターに関わらず火星〜冥王星のみを対象にしています</p>
+          </div>
+          <div>
+            <p class="form-label" style="font-size:9px;opacity:0.7;margin-bottom:4px">重要度</p>
+            <div id="seImportanceChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-family:sans-serif;font-size:11px;color:var(--navy)">
+            <input type="checkbox" id="seShowEconomic" checked style="accent-color:var(--navy)">
+            経済イベントも表示する（FOMC・CPI等）
+          </label>
+        </div>
+      </details>
+
+      <div id="seStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
+      <div id="seListWrap"></div>
+      <div id="seCalendarWrap" style="display:none"></div>
+
+      <div style="margin-top:14px;background:#fff;border:1.5px solid rgba(26,42,74,0.12);border-radius:8px;padding:10px 12px;">
+        <p class="sec-title" style="margin-bottom:8px">🔍 同じアスペクトを検索</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">天体1</span><select class="transit-date-input" id="seSearchP1"></select></div>
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">アスペクト</span><select class="transit-date-input" id="seSearchAsp"></select></div>
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">天体2</span><select class="transit-date-input" id="seSearchP2"></select></div>
+          <div class="eph-field"><span class="form-label" style="font-size:9px;opacity:0.7">範囲</span>
+            <select class="transit-date-input" id="seSearchRange">
+              <option value="5">過去5年〜未来5年</option>
+              <option value="10">過去10年〜未来10年</option>
+              <option value="20">過去20年〜未来20年</option>
+            </select>
+          </div>
+          <button class="today-btn" id="seSearchBtn" style="padding:8px 16px">検索</button>
+        </div>
+        <div id="seSearchResult" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eventModalOverlay">
+  <div class="modal-box" style="max-width:640px;width:92vw">
+    <button class="modal-close" id="eventModalClose">✕</button>
+    <p class="modal-title" id="eventModalTitle">イベント詳細</p>
+    <div id="eventModalBody"></div>
   </div>
 </div>
 
@@ -1814,5 +1917,9 @@ function renderComparison(){
 }
 document.getElementById('compareBtn').addEventListener('click',renderComparison);
 </script>
+<script src="./sky-events.js"></script>
+<script src="./journal-store.js"></script>
+<script src="./economic-events-data.js"></script>
+<script src="./calendar-ui.js"></script>
 </body>
 </html>
