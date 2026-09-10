@@ -242,6 +242,7 @@
           <div class="form-group"><span class="form-label">事前テーマ・メモ</span><textarea class="form-input" id="jPreNote" rows="2">${j.preNote||''}</textarea></div>
           <div class="form-group"><span class="form-label">実際に起きた出来事</span><textarea class="form-input" id="jActual" rows="2">${j.actualOutcome||''}</textarea></div>
           <div class="form-group"><span class="form-label">市場データ</span>
+            <div id="mktRefLine" style="font-size:10px;color:var(--muted);min-height:14px"></div>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px">
               ${marketFields.map(f=>`<input class="form-input" style="font-size:11px;padding:6px 8px" id="jMkt_${f}" placeholder="${marketLabels[f]}" value="${mkt[f]||''}">`).join('')}
             </div>
@@ -257,6 +258,24 @@
       const canvas=document.getElementById('eventWheelCanvas');
       if(canvas) drawSkyWheel(canvas, e.jd, 280);
     },10);
+
+    if(typeof MarketData!=='undefined'){
+      MarketData.getNear(fmtDate(e.jd)).then(near=>{
+        const line=document.getElementById('mktRefLine');
+        if(!line) return; // モーダルが閉じられた後に解決した場合
+        if(!near){ line.textContent=''; return; }
+        const parts=[];
+        if(near['日経平均']!=null) parts.push(`日経平均 ${near['日経平均'].toLocaleString()}円`);
+        if(near['S&P500']!=null) parts.push(`S&P500 ${near['S&P500'].toLocaleString()}`);
+        if(near['オルカン']!=null) parts.push(`オルカン ${near['オルカン']}`);
+        line.textContent = parts.length ? `📈 market-oracle自動取得（${near.date}終値）：${parts.join(' / ')}` : '';
+        // 日経平均は既存の検証記録に値が無い場合のみ自動入力（手入力を上書きしない）
+        const nikkeiInput=document.getElementById('jMkt_nikkei');
+        if(nikkeiInput && !nikkeiInput.value && near['日経平均']!=null){
+          nikkeiInput.value = Math.round(near['日経平均']);
+        }
+      });
+    }
 
     document.getElementById('jSaveBtn').addEventListener('click',()=>{
       const marketData={}; marketFields.forEach(f=>marketData[f]=document.getElementById('jMkt_'+f).value);
