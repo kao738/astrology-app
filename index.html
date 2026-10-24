@@ -152,8 +152,18 @@
 .eph-table td { font-size: 11px; padding: 5px 8px; border-bottom: 1px solid rgba(26,42,74,0.06); border-left: 1px solid rgba(26,42,74,0.04); color: var(--text); text-align: center; }
 .eph-table td.eph-date, .eph-table th.eph-date-h { position: sticky; left: 0; background: #fff; font-weight: 700; text-align: left; border-left: none; }
 .eph-table th.eph-date-h { background: #eef0f5; z-index: 2; }
-.eph-r { color: #c0392b; font-weight: 700; }
+.eph-r { color: #c0392b; font-weight: 700; background: #fde8e8; }
 .eph-d { color: var(--muted); }
+.eph-station-r { background: #e74c3c; color: #fff; font-weight: 700; }
+.eph-station-d { background: #27ae60; color: #fff; font-weight: 700; }
+.eph-station-lbl { display: block; font-size: 9px; font-weight: 700; }
+.eph-ing { background: #fff3c4; box-shadow: inset 3px 0 0 var(--gold); }
+.eph-ing-lbl { font-size: 9px; font-weight: 700; white-space: nowrap; }
+.eph-change-dot { color: var(--gold); margin-left: 3px; }
+.el-fire { color: #c0392b; }
+.el-earth { color: #8b5a2b; }
+.el-air { color: #7d3c98; }
+.el-water { color: #1f5fa8; }
 .compare-col { background: #fff; border: 1.5px solid rgba(26,42,74,0.12); border-radius: 8px; padding: 12px; }
 .compare-col-a .compare-col-header { color: #1a2a4a; border-bottom: 2px solid #1a2a4a; }
 .compare-col-b .compare-col-header { color: #c0392b; border-bottom: 2px solid #c0392b; }
@@ -379,7 +389,7 @@
         <button class="action-btn" id="ephCsvBtn" style="display:none">↓ CSV保存</button>
         <button class="action-btn" id="ephCopyBtn" style="display:none">⧉ コピー（スプシ貼付用）</button>
       </div>
-      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。</p>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。</p>
       <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ephTableWrap" class="eph-table-wrap"></div>
     </div>
@@ -525,6 +535,12 @@
 <script>
 const SIGNS=['牡羊座','牡牛座','双子座','蟹座','獅子座','乙女座','天秤座','蠍座','射手座','山羊座','水瓶座','魚座'];
 const SSYM=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+// エレメント色分け：サイン番号%4 → 火(赤)・地(茶)・風(紫)・水(青)
+const ELEMENT_CLS=['el-fire','el-earth','el-air','el-water'];
+const ELEMENT_COLOR=['#c0392b','#8b5a2b','#7d3c98','#1f5fa8'];
+const ELEMENT_BG=['#fdecea','#f5ede4','#f3ebf8','#e9f1fb'];
+function signIdx(name){return SIGNS.indexOf(name);}
+function elSpan(si,text){return`<span class="${ELEMENT_CLS[si%4]}">${text}</span>`;}
 const PNAMES={Sun:'太陽',Moon:'月',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星',Uranus:'天王星',Neptune:'海王星',Pluto:'冥王星'};
 const PSYM={Sun:'☉',Moon:'☽',Mercury:'☿',Venus:'♀',Mars:'♂',Jupiter:'♃',Saturn:'♄',Uranus:'♅',Neptune:'♆',Pluto:'♇'};
 const NATAL_COL={Sun:'#b8860b',Moon:'#3a5080',Mercury:'#2a6040',Venus:'#8a3060',Mars:'#8a1a1a',Jupiter:'#6a4010',Saturn:'#4a4a20',Uranus:'#1a4a6a',Neptune:'#2a2a8a',Pluto:'#4a1a4a'};
@@ -958,16 +974,15 @@ function drawChart(canvas,pos,houses,todayPos,size){
   }
 
   // サインセクター
-  const signColors=['#fff8f0','#f0fff4','#f0f4ff','#fff0f8','#fffaf0','#f4fff0','#f0f8ff','#fff0f0','#f5f0ff','#f0fbff','#f8f5ff','#fff0fc'];
   for(let i=0;i<12;i++){
     const sa=((houses[0]-i*30+180)*Math.PI/180),ea=((houses[0]-(i+1)*30+180)*Math.PI/180);
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,OR,sa,ea,true);ctx.closePath();
-    ctx.fillStyle=signColors[i];ctx.fill();
+    ctx.fillStyle=ELEMENT_BG[i%4];ctx.fill();
     ctx.strokeStyle='rgba(26,42,74,0.1)';ctx.lineWidth=0.5;ctx.stroke();
     const ma=(sa+ea)/2;
-    ctx.fillStyle='#1a2a4a';ctx.font=`${10*sc}px serif`;
+    ctx.fillStyle=ELEMENT_COLOR[i%4];ctx.font=`${10*sc}px serif`;
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(SSYM[i],cx+(OR+SR)/2*Math.cos(ma),cy+(OR+SR)/2*Math.sin(ma));
+    ctx.fillText(SSYM[i]+'\uFE0E',cx+(OR+SR)/2*Math.cos(ma),cy+(OR+SR)/2*Math.sin(ma));
   }
 
   ctx.strokeStyle='rgba(26,42,74,0.2)';ctx.lineWidth=0.7;
@@ -1095,19 +1110,19 @@ function renderPlanets(tp){
   let html='';
   PLANETS.forEach(p=>{
     const s=degToSDD(pos[p]),h=planetHouse(pos[p],houses);
-    html+=`<div class="pcard"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
+    html+=`<div class="pcard"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${elSpan(s.si,SIGNS[s.si])} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
   });
   if(tp){
     html+='<div style="grid-column:1/-1;font-size:10px;font-family:sans-serif;color:#c0392b;font-weight:700;letter-spacing:0.1em;margin-top:4px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.2);">— トランジット天体（ネイタルハウス基準） —</div>';
     PLANETS.forEach(p=>{
       const s=degToSDD(tp[p]),h=planetHouse(tp[p],CD.houses);
-      html+=`<div class="pcard transit-card"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${SIGNS[s.si]} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
+      html+=`<div class="pcard transit-card"><div class="pcard-name">${PSYM[p]} ${PNAMES[p]}</div><div class="pcard-pos">${elSpan(s.si,SIGNS[s.si])} ${s.d}°${String(s.m).padStart(2,'0')}'</div><div class="pcard-sub">第${h}ハウス</div></div>`;
     });
   }
   document.getElementById('planetGrid').innerHTML=html;
 }
 
-function renderHouses(){document.getElementById('houseGrid').innerHTML=CD.houses.map((h,i)=>{const s=degToSDD(h);return`<div class="hitem"><span class="hnum">H${i+1}</span><span class="hsign">${SSYM[s.si]}</span><span class="hdeg">${SIGNS[s.si].slice(0,-1)} ${s.d}°${String(s.m).padStart(2,'0')}'</span></div>`;}).join('');}
+function renderHouses(){document.getElementById('houseGrid').innerHTML=CD.houses.map((h,i)=>{const s=degToSDD(h);return`<div class="hitem"><span class="hnum">H${i+1}</span><span class="hsign ${ELEMENT_CLS[s.si%4]}">${SSYM[s.si]}&#xFE0E;</span><span class="hdeg">${elSpan(s.si,SIGNS[s.si].slice(0,-1))} ${s.d}°${String(s.m).padStart(2,'0')}'</span></div>`;}).join('');}
 
 function renderAspects(){const{pos}=CD;let rows='';for(let i=0;i<PLANETS.length;i++)for(let j=i+1;j<PLANETS.length;j++){const asp=getAspect(pos[PLANETS[i]],pos[PLANETS[j]]);if(asp)rows+=`<tr><td>${PSYM[PLANETS[i]]} ${PNAMES[PLANETS[i]]}</td><td>${PSYM[PLANETS[j]]} ${PNAMES[PLANETS[j]]}</td><td><span class="abadge a-${asp.cls}">${asp.sym} ${asp.name}</span></td><td>${asp.ang}°</td><td style="color:var(--muted)">${asp.orb}°</td></tr>`;}document.getElementById('aspectBody').innerHTML=rows||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">なし</td></tr>';}
 
@@ -1242,9 +1257,6 @@ function buildEphemerisRows(year,month,lat,lon,natalHouses){
   const tz=Math.round(lon/15);
   const startMo=month===0?1:month,endMo=month===0?12:month;
   const startDate=new Date(year,startMo-1,1),endDate=new Date(year,endMo,0);
-  const prevRef=new Date(startDate);prevRef.setDate(prevRef.getDate()-1);
-  const prevJd=toJD(prevRef.getFullYear(),prevRef.getMonth()+1,prevRef.getDate(),0,0,tz);
-  let prevPos={};PLANETS.forEach(p=>prevPos[p]=calcPlanet(p,prevJd));
 
   // 当日0:00の位置に加え、翌日0:00の位置も保持し、日中のサイン移動（イングレス）を検出する
   const days=[];
@@ -1267,15 +1279,20 @@ function buildEphemerisRows(year,month,lat,lon,natalHouses){
     const planets={};
     PLANETS.forEach(p=>{
       const s=degToSDD(day.pos[p]),house=planetHouse(day.pos[p],houses);
-      const pv=i===0?prevPos[p]:days[i-1].pos[p];
-      const retro=(p==='Sun'||p==='Moon')?'-':(circDiff(day.pos[p],pv)<0?'R':'D');
+      // 0:00時点の瞬間速度（前後の中心差分）で順逆を判定。前日比だとステーション前後で1〜2日遅れるため
+      const retro=ltDirectionAt(p,day.jd);
+      let station=null;
+      if(retro!=='-'){
+        const nextDir=ltDirectionAt(p,nextDayJd);
+        if(nextDir!==retro)station={time:jdToLocalHM(findStationJD(p,day.jd,nextDayJd),tz),toDir:nextDir};
+      }
       const signNext=Math.floor((((nextDayPos[p]%360)+360)%360)/30);
       let ingress=null;
       if(signNext!==s.si){
         const ingJd=findIngressJD(p,day.jd,nextDayJd,s.si);
         ingress={time:jdToLocalHM(ingJd,tz),toSign:SIGNS[signNext]};
       }
-      planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro,ingress};
+      planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro,ingress,station};
     });
     return{dateStr:`${day.y}-${String(day.mo).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`,planets};
   });
@@ -1286,14 +1303,26 @@ function renderEphemerisTable(rows){
   thead+='</tr>';
   let tbody='';
   rows.forEach(r=>{
-    tbody+=`<tr><td class="eph-date">${r.dateStr}</td>`;
+    let cells='',changed=false;
     PLANETS.forEach(p=>{
-      const pd=r.planets[p];
-      const cls=pd.retro==='R'?'eph-r':(pd.retro==='D'?'eph-d':'');
-      const ing=pd.ingress?`<br><span style="font-size:9px;color:var(--gold);font-weight:700;white-space:nowrap">→${pd.ingress.toSign.slice(0,-1)} ${pd.ingress.time}</span>`:'';
-      tbody+=`<td>${pd.sign}${pd.deg}°${ing}</td><td>H${pd.house}</td><td class="${cls}">${pd.retro}</td>`;
+      const pd=r.planets[p],station=pd.station;
+      let cls=pd.retro==='R'?'eph-r':(pd.retro==='D'?'eph-d':'');
+      let retroTxt=pd.retro;
+      // 同日中に逆行開始/順行再開（ステーション）がある日は強調し時刻を併記
+      if(station){
+        cls=station.toDir==='R'?'eph-station-r':'eph-station-d';
+        retroTxt+=`<span class="eph-station-lbl">${station.toDir==='R'?'逆行開始':'順行へ'} ${station.time}</span>`;
+      }
+      const si=signIdx(pd.sign);
+      let ing='';
+      if(pd.ingress){
+        const toSi=signIdx(pd.ingress.toSign);
+        ing=`<br><span class="eph-ing-lbl ${ELEMENT_CLS[toSi%4]}">→${pd.ingress.toSign.slice(0,-1)} ${pd.ingress.time}</span>`;
+      }
+      if(station||pd.ingress)changed=true;
+      cells+=`<td${pd.ingress?' class="eph-ing"':''}>${elSpan(si,pd.sign)}${pd.deg}°${ing}</td><td>H${pd.house}</td><td class="${cls}">${retroTxt}</td>`;
     });
-    tbody+='</tr>';
+    tbody+=`<tr><td class="eph-date">${r.dateStr}${changed?'<span class="eph-change-dot" title="この日に移動・逆行/順行の変化あり">●</span>':''}</td>${cells}</tr>`;
   });
   document.getElementById('ephTableWrap').innerHTML=`<table class="eph-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
@@ -1313,8 +1342,8 @@ document.getElementById('ephRefCity').addEventListener('change',function(){
 document.getElementById('ephUseNatalHouses').addEventListener('change',function(){
   const explain=document.getElementById('ephExplainText');
   explain.textContent=this.checked
-    ?'各日0:00時点（基準地のローカルタイム換算）の天体位置・順行(D)/逆行(R)の一覧。ハウスはあなたのネイタルチャートの house cusp（固定）で判定します。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します。'
-    :'各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合は「→移動先サイン 時刻」を金色で表示します（0:00時点はまだ移動前のサインのままです）。';
+    ?'各日0:00時点（基準地のローカルタイム換算）の天体位置・順行(D)/逆行(R)の一覧。ハウスはあなたのネイタルチャートの house cusp（固定）で判定します。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。'
+    :'各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。';
 });
 document.getElementById('ephGenBtn').addEventListener('click',()=>{
   const year=parseInt(document.getElementById('ephYear').value,10);
@@ -1527,7 +1556,7 @@ function renderLongTermReport(result,meta){
       <div style="margin-top:10px">
         <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin-bottom:4px;">サイン滞在期間</p>
         <table class="asp-table"><thead><tr><th>サイン</th><th>開始</th><th>終了</th><th>日数</th></tr></thead><tbody>
-        ${r.signPeriods.map(sp=>`<tr><td>${SIGNS[sp.value]}</td><td>${fmtDate(sp.start)}</td><td>${fmtDate(sp.end)}</td><td>${Math.round(sp.end-sp.start)}日</td></tr>`).join('')}
+        ${r.signPeriods.map(sp=>`<tr><td>${elSpan(sp.value,SIGNS[sp.value])}</td><td>${fmtDate(sp.start)}</td><td>${fmtDate(sp.end)}</td><td>${Math.round(sp.end-sp.start)}日</td></tr>`).join('')}
         </tbody></table>
 
         <p style="font-size:10px;font-family:sans-serif;font-weight:700;color:var(--gold);letter-spacing:0.08em;margin:10px 0 4px;">ハウス滞在期間（ネイタルハウス基準）</p>
