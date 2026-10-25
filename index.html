@@ -160,6 +160,13 @@
 .eph-ing { background: #fff3c4; box-shadow: inset 3px 0 0 var(--gold); }
 .eph-ing-lbl { font-size: 9px; font-weight: 700; white-space: nowrap; }
 .eph-change-dot { color: var(--gold); margin-left: 3px; }
+.eph-table td.eph-date.eph-lun-new { background: #e3e7f0; }
+.eph-table td.eph-date.eph-lun-full { background: #fff8dc; }
+.eph-lun-icon { margin-left: 4px; }
+.eph-table td.eph-events { text-align: left; font-size: 10px; line-height: 1.5; min-width: 150px; }
+.eph-ev-lun { font-weight: 700; color: var(--navy); }
+.eph-ev-ecl { color: #c0392b; font-weight: 700; }
+.eph-ev-time { font-variant-numeric: tabular-nums; color: var(--muted); margin-right: 4px; }
 .el-fire { color: #c0392b; }
 .el-earth { color: #8b5a2b; }
 .el-air { color: #7d3c98; }
@@ -390,7 +397,7 @@
         <button class="action-btn" id="ephCsvBtn" style="display:none">↓ CSV保存</button>
         <button class="action-btn" id="ephCopyBtn" style="display:none">⧉ コピー（スプシ貼付用）</button>
       </div>
-      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。</p>
+      <p style="font-size:10px;font-family:sans-serif;color:var(--muted);margin:0 0 10px;" id="ephExplainText">各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。新月・満月の日は日付に🌑🌕を付け、正確な時刻（日食・月食も）を「新月・満月」列に表示します。「この日の出来事」列には、新月・満月／サイン移動／逆行・順行の切り替わりを時刻順にまとめています。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。</p>
       <div id="ephStatus" style="font-size:11px;font-family:sans-serif;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ephTableWrap" class="eph-table-wrap"></div>
     </div>
@@ -1251,7 +1258,27 @@ function jdToLocalHM(jd,tz){
   const date=new Date((jd-2440587.5)*86400000);
   let mins=date.getUTCHours()*60+date.getUTCMinutes()+tz*60;
   mins=((mins%1440)+1440)%1440;
-  return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(Math.round(mins%60)).padStart(2,'0')}`;
+  return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+}
+// 期間内の新月・満月（SearchMoonQuarter：0=新月 2=満月）と、対応する日食・月食（極大と±1日で照合）
+const EPH_ECL_KIND={total:'皆既',annular:'金環',partial:'部分',penumbral:'半影',hybrid:'金環皆既'};
+function findEphLunations(jdA,jdB){
+  const toJ=d=>d.getTime()/86400000+2440587.5;
+  const ecls=[];
+  let se=Astronomy.SearchGlobalSolarEclipse(jdToDate(jdA-1));
+  while(toJ(se.peak.date)<jdB+1){ecls.push({q:0,jd:toJ(se.peak.date),kind:String(se.kind)});se=Astronomy.NextGlobalSolarEclipse(se.peak);}
+  let le=Astronomy.SearchLunarEclipse(jdToDate(jdA-1));
+  while(toJ(le.peak.date)<jdB+1){ecls.push({q:2,jd:toJ(le.peak.date),kind:String(le.kind)});le=Astronomy.NextLunarEclipse(le.peak);}
+  const out=[];
+  let mq=Astronomy.SearchMoonQuarter(jdToDate(jdA));
+  while(toJ(mq.time.date)<jdB){
+    if(mq.quarter%2===0){
+      const jd=toJ(mq.time.date),ecl=ecls.find(e=>e.q===mq.quarter&&Math.abs(e.jd-jd)<1);
+      out.push({q:mq.quarter,jd,ecl:ecl?`${EPH_ECL_KIND[ecl.kind]||ecl.kind}${ecl.q===0?'日食':'月食'}`:''});
+    }
+    mq=Astronomy.NextMoonQuarter(mq);
+  }
+  return out;
 }
 
 function buildEphemerisRows(year,month,lat,lon,natalHouses){
@@ -1272,12 +1299,21 @@ function buildEphemerisRows(year,month,lat,lon,natalHouses){
   const nextRef=new Date(endDate);nextRef.setDate(nextRef.getDate()+1);
   const nextJd=toJD(nextRef.getFullYear(),nextRef.getMonth()+1,nextRef.getDate(),0,0,tz);
   const nextPos={};PLANETS.forEach(p=>nextPos[p]=calcPlanet(p,nextJd));
+  const lunations=findEphLunations(days[0].jd,nextJd);
 
   return days.map((day,i)=>{
     const nextDayPos=i+1<days.length?days[i+1].pos:nextPos;
     const nextDayJd=i+1<days.length?days[i+1].jd:nextJd;
     const houses=natalHouses||calcHouses(day.jd,lat,lon);
-    const planets={};
+    const planets={},events=[];
+    // 当日0:00〜翌日0:00（基準地ローカル）に起きる新月・満月
+    let lunation=null;
+    const lun=lunations.find(l=>l.jd>=day.jd&&l.jd<nextDayJd);
+    if(lun){
+      const mSi=Math.floor((((calcPlanet('Moon',lun.jd)%360)+360)%360)/30);
+      lunation={q:lun.q,label:lun.q===0?'新月':'満月',time:jdToLocalHM(lun.jd,tz),sign:SIGNS[mSi],ecl:lun.ecl};
+      events.push({jd:lun.jd,time:lunation.time,kind:'lun',text:`${lun.q===0?'🌑':'🌕'}${lunation.label}（月${SIGNS[mSi]}）${lun.ecl?' '+lun.ecl:''}`,ecl:lun.ecl});
+    }
     PLANETS.forEach(p=>{
       const s=degToSDD(day.pos[p]),house=planetHouse(day.pos[p],houses);
       // 0:00時点の瞬間速度（前後の中心差分）で順逆を判定。前日比だとステーション前後で1〜2日遅れるため
@@ -1285,21 +1321,27 @@ function buildEphemerisRows(year,month,lat,lon,natalHouses){
       let station=null;
       if(retro!=='-'){
         const nextDir=ltDirectionAt(p,nextDayJd);
-        if(nextDir!==retro)station={time:jdToLocalHM(findStationJD(p,day.jd,nextDayJd),tz),toDir:nextDir};
+        if(nextDir!==retro){
+          const stJd=findStationJD(p,day.jd,nextDayJd);
+          station={time:jdToLocalHM(stJd,tz),toDir:nextDir};
+          events.push({jd:stJd,time:station.time,kind:'station',text:`${PSYM[p]}${PNAMES[p]} ${nextDir==='R'?'逆行開始':'順行へ'}`});
+        }
       }
       const signNext=Math.floor((((nextDayPos[p]%360)+360)%360)/30);
       let ingress=null;
       if(signNext!==s.si){
         const ingJd=findIngressJD(p,day.jd,nextDayJd,s.si);
         ingress={time:jdToLocalHM(ingJd,tz),toSign:SIGNS[signNext]};
+        events.push({jd:ingJd,time:ingress.time,kind:'ingress',text:`${PSYM[p]}${PNAMES[p]}→${SIGNS[signNext]}`,toSi:signNext});
       }
       planets[p]={sign:SIGNS[s.si],deg:s.d,min:s.m,house,retro,ingress,station};
     });
-    return{dateStr:`${day.y}-${String(day.mo).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`,planets};
+    events.sort((a,b)=>a.jd-b.jd);
+    return{dateStr:`${day.y}-${String(day.mo).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`,planets,lunation,events};
   });
 }
 function renderEphemerisTable(rows){
-  let thead='<tr><th class="eph-date-h">日付</th>';
+  let thead='<tr><th class="eph-date-h">日付</th><th>新月・満月</th><th>この日の出来事<br>（時刻順）</th>';
   PLANETS.forEach(p=>{thead+=`<th>${PSYM[p]}${PNAMES[p]}<br>サイン</th><th>${PSYM[p]}${PNAMES[p]}<br>H</th><th>${PSYM[p]}${PNAMES[p]}<br>順逆</th>`;});
   thead+='</tr>';
   let tbody='';
@@ -1323,15 +1365,27 @@ function renderEphemerisTable(rows){
       if(station||pd.ingress)changed=true;
       cells+=`<td${pd.ingress?' class="eph-ing"':''}>${elSpan(si,pd.sign)}${pd.deg}°${ing}</td><td>H${pd.house}</td><td class="${cls}">${retroTxt}</td>`;
     });
-    tbody+=`<tr><td class="eph-date">${r.dateStr}${changed?'<span class="eph-change-dot" title="この日に移動・逆行/順行の変化あり">●</span>':''}</td>${cells}</tr>`;
+    const lu=r.lunation;
+    const dateCls=lu?(lu.q===0?' eph-lun-new':' eph-lun-full'):'';
+    const lunIcon=lu?`<span class="eph-lun-icon" title="${lu.label} ${lu.time}">${lu.q===0?'🌑':'🌕'}</span>`:'';
+    const lunCell=lu?`<span class="eph-ev-lun">${lu.q===0?'🌑':'🌕'} ${lu.label} ${lu.time}</span>${lu.ecl?`<br><span class="eph-ev-ecl">${lu.ecl}</span>`:''}`:'';
+    const evCell=r.events.map(ev=>{
+      let txt=ev.text;
+      if(ev.kind==='lun')txt=`<span class="eph-ev-lun">${ev.text.replace(ev.ecl,'')}</span>${ev.ecl?`<span class="eph-ev-ecl">${ev.ecl}</span>`:''}`;
+      else if(ev.kind==='ingress')txt=`<span class="${ELEMENT_CLS[ev.toSi%4]}">${ev.text}</span>`;
+      else txt=`<span style="color:${ev.text.includes('逆行')?'#c0392b':'#27ae60'};font-weight:700">${ev.text}</span>`;
+      return `<span class="eph-ev-time">${ev.time}</span>${txt}`;
+    }).join('<br>');
+    tbody+=`<tr><td class="eph-date${dateCls}">${r.dateStr}${lunIcon}${changed?'<span class="eph-change-dot" title="この日に移動・逆行/順行の変化あり">●</span>':''}</td><td>${lunCell}</td><td class="eph-events">${evCell}</td>${cells}</tr>`;
   });
   document.getElementById('ephTableWrap').innerHTML=`<table class="eph-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 function ephRowsToTable(rows){
-  const header=['日付'];
+  const header=['日付','新月・満月','新月・満月_時刻','日食・月食','この日の出来事（時刻順）'];
   PLANETS.forEach(p=>header.push(`${PNAMES[p]}_サイン`,`${PNAMES[p]}_H`,`${PNAMES[p]}_順逆`,`${PNAMES[p]}_移動時刻`));
   const body=rows.map(r=>{
-    const row=[r.dateStr];
+    const lu=r.lunation;
+    const row=[r.dateStr,lu?`${lu.label}（月${lu.sign}）`:'',lu?lu.time:'',lu?lu.ecl:'',r.events.map(ev=>`${ev.time} ${ev.text.replace(/[🌑🌕]/gu,'')}`).join(' / ')];
     PLANETS.forEach(p=>{const pd=r.planets[p];row.push(`${pd.sign}${pd.deg}°${String(pd.min).padStart(2,'0')}'`,`H${pd.house}`,pd.retro,pd.ingress?`${pd.ingress.time}→${pd.ingress.toSign}`:'');});
     return row;
   });
@@ -1343,8 +1397,8 @@ document.getElementById('ephRefCity').addEventListener('change',function(){
 document.getElementById('ephUseNatalHouses').addEventListener('change',function(){
   const explain=document.getElementById('ephExplainText');
   explain.textContent=this.checked
-    ?'各日0:00時点（基準地のローカルタイム換算）の天体位置・順行(D)/逆行(R)の一覧。ハウスはあなたのネイタルチャートの house cusp（固定）で判定します。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。'
-    :'各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。';
+    ?'各日0:00時点（基準地のローカルタイム換算）の天体位置・順行(D)/逆行(R)の一覧。ハウスはあなたのネイタルチャートの house cusp（固定）で判定します。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。新月・満月の日は日付に🌑🌕を付け、正確な時刻（日食・月食も）を「新月・満月」列に表示します。「この日の出来事」列には、新月・満月／サイン移動／逆行・順行の切り替わりを時刻順にまとめています。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。'
+    :'各日0:00時点（基準地のローカルタイム換算）の天体位置・ハウス（プラシダス）・順行(D)/逆行(R)の一覧。ネイタルチャートとは独立した計算です。太陽・月は常に順行のため「-」表示。同日中にサインが変わる場合はセルを金色で囲み「→移動先サイン 時刻」を表示します。（0:00時点はまだ移動前のサインのままです）。逆行中は薄赤、逆行開始日は赤・順行に戻る日は緑で強調して時刻を併記し、変化がある日は日付に●が付きます。新月・満月の日は日付に🌑🌕を付け、正確な時刻（日食・月食も）を「新月・満月」列に表示します。「この日の出来事」列には、新月・満月／サイン移動／逆行・順行の切り替わりを時刻順にまとめています。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。';
 });
 document.getElementById('ephGenBtn').addEventListener('click',()=>{
   const year=parseInt(document.getElementById('ephYear').value,10);
