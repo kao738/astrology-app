@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サビアンシンボル｜星読み</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1a2a4a; --navy2: #2a3f6f; --gold: #b8860b;
+  --bg: #f0f2f5; --card: #ffffff; --border: rgba(26,42,74,0.18);
+  --text: #1a2a4a; --muted: #4a5a7a;
+}
+body { background: var(--bg); }
+.app { max-width: 1100px; margin: 0 auto; padding: 1.5rem 16px; font-family: Georgia, serif; color: var(--text); }
+.header { text-align: center; margin-bottom: 1.2rem; position: relative; }
+.header h1 { font-size: 1.7rem; font-weight: 400; letter-spacing: 0.3em; color: var(--navy); }
+.header p { font-size: 10px; letter-spacing: 0.2em; color: var(--muted); margin-top: 3px; font-family: sans-serif; text-transform: uppercase; }
+.back-link { position: absolute; left: 0; top: 6px; font-family: sans-serif; font-size: 11px; color: var(--navy); text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 0.8rem 0; }
+.divider-line { flex: 1; height: 1px; background: rgba(26,42,74,0.15); }
+.divider-gem { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); }
+.tabs { display: flex; border-bottom: 2px solid rgba(26,42,74,0.15); margin-bottom: 1rem; flex-wrap: wrap; background: #fff; border-radius: 8px 8px 0 0; padding: 0 4px; }
+.tab-btn { background: transparent; border: none; border-bottom: 2.5px solid transparent; color: var(--muted); cursor: pointer; font-family: sans-serif; font-size: 11px; letter-spacing: 0.1em; margin-bottom: -2px; padding: 10px 12px; }
+.tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 700; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.ctrl { background: #fff; border: 1.5px solid rgba(26,42,74,0.1); border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.lbl { font-size: 9px; letter-spacing: 0.15em; color: var(--navy); font-family: sans-serif; font-weight: 700; opacity: 0.7; }
+.inp { background: #f5f6fa; border: 1.5px solid rgba(26,42,74,0.25); border-radius: 5px; color: var(--navy); font-size: 12px; padding: 6px 10px; font-family: sans-serif; outline: none; }
+.inp:focus { border-color: var(--navy2); }
+.btn { background: var(--navy); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-family: sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 7px 12px; white-space: nowrap; }
+.btn:hover { background: var(--navy2); }
+.btn-sub { background: #fff; border: 1.5px solid rgba(26,42,74,0.28); border-radius: 4px; color: var(--navy); cursor: pointer; font-family: sans-serif; font-size: 11px; padding: 6px 12px; white-space: nowrap; }
+.btn-sub:hover { background: #e8eaf0; }
+.note { font-size: 10px; font-family: sans-serif; color: var(--muted); margin: 0 0 10px; line-height: 1.6; }
+.status { font-size: 11px; font-family: sans-serif; color: #2a7a4a; min-height: 1em; margin-bottom: 6px; }
+.el-fire { color: #c0392b; } .el-earth { color: #8b5a2b; } .el-air { color: #7d3c98; } .el-water { color: #1f5fa8; }
+
+/* その日のサビアン */
+.sab-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; font-family: sans-serif; }
+.sab-table th { font-size: 10px; color: var(--navy); background: #eef0f5; padding: 7px 8px; text-align: left; font-weight: 700; }
+.sab-table td { font-size: 12px; padding: 8px; border-top: 1px solid rgba(26,42,74,0.07); vertical-align: top; }
+.sab-planet { white-space: nowrap; font-weight: 700; }
+.sab-pos { white-space: nowrap; color: var(--muted); font-size: 11px; }
+.sab-deg { white-space: nowrap; font-weight: 700; }
+.sab-text { font-family: Georgia, serif; font-size: 14px; line-height: 1.5; }
+.sab-r { display: inline-block; font-size: 9px; font-weight: 700; color: #c0392b; background: #fde8e8; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+.sab-change { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+.sab-change b { color: var(--gold); }
+details.moon-path { margin-top: 6px; font-size: 11px; }
+details.moon-path summary { cursor: pointer; color: var(--navy); font-weight: 700; }
+details.moon-path ol { list-style: none; margin-top: 4px; }
+details.moon-path li { padding: 2px 0; border-bottom: 1px dotted rgba(26,42,74,0.1); }
+.time-tag { display: inline-block; min-width: 44px; color: var(--gold); font-weight: 700; }
+.copy-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+
+/* 月間表 */
+.tbl-wrap { overflow: auto; max-width: 100%; max-height: 620px; border-radius: 8px; border: 1px solid rgba(26,42,74,0.1); }
+.m-table { border-collapse: collapse; font-family: sans-serif; font-size: 11px; white-space: nowrap; background: #fff; }
+.m-table th { font-size: 10px; color: var(--navy); background: #eef0f5; padding: 6px 8px; font-weight: 700; position: sticky; top: 0; z-index: 1; border-left: 1px solid rgba(26,42,74,0.06); }
+.m-table td { padding: 5px 8px; border-bottom: 1px solid rgba(26,42,74,0.06); border-left: 1px solid rgba(26,42,74,0.04); text-align: center; cursor: pointer; }
+.m-table td:hover { background: #f5f0e0; }
+.m-table td.m-date, .m-table th.m-date { position: sticky; left: 0; background: #fff; text-align: left; font-weight: 700; cursor: default; z-index: 2; }
+.m-table th.m-date { background: #eef0f5; z-index: 3; }
+.m-table td.m-chg { background: #fff8e1; box-shadow: inset 3px 0 0 var(--gold); }
+.m-table tr.m-today td { background: #eef3fb; }
+.m-table td.m-sel { outline: 2px solid var(--gold); outline-offset: -2px; }
+.m-info { background: #fff; border: 1.5px solid rgba(184,134,11,0.4); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: sans-serif; font-size: 12px; min-height: 2.6em; }
+.m-info .sab-text { font-size: 14px; }
+
+/* 360度一覧 */
+.sign-block { background: #fff; border: 1.5px solid rgba(26,42,74,0.1); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.sign-block h3 { font-size: 13px; font-weight: 700; padding: 8px 12px; background: #eef0f5; font-family: sans-serif; letter-spacing: 0.1em; }
+.deg-list { list-style: none; }
+.deg-list li { display: flex; gap: 10px; padding: 6px 12px; border-top: 1px solid rgba(26,42,74,0.06); font-size: 13px; line-height: 1.5; align-items: baseline; }
+.deg-list li .dnum { flex: 0 0 3.2em; font-family: sans-serif; font-weight: 700; font-size: 11px; color: var(--muted); }
+.deg-list li .dtxt { flex: 1; }
+.deg-list li.occupied { background: #fff8e1; }
+.badge { display: inline-block; font-family: sans-serif; font-size: 10px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 3px; padding: 1px 5px; margin-left: 4px; white-space: nowrap; }
+mark { background: #ffe58a; padding: 0 1px; }
+
+@media (max-width: 640px) {
+  .back-link { position: static; display: inline-block; margin-bottom: 6px; }
+  .sab-table th:nth-child(2), .sab-table td:nth-child(2) { display: none; }
+  .sab-text { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <a class="back-link" href="./index.html">← 星読みへ戻る</a>
+    <h1>サビアン</h1>
+    <p>Sabian Symbols of the Day</p>
+  </div>
+  <div class="divider"><div class="divider-line"></div><div class="divider-gem"></div><div class="divider-line"></div></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="day">その日のサビアン</button>
+    <button class="tab-btn" data-tab="month">月間サビアン表</button>
+    <button class="tab-btn" data-tab="all">360度一覧</button>
+  </div>
+
+  <!-- ===== その日のサビアン ===== -->
+  <div id="pane-day" class="tab-pane active">
+    <div class="ctrl">
+      <div class="field"><span class="lbl">日付</span><input class="inp" type="date" id="dayDate"></div>
+      <div class="field"><span class="lbl">時刻（日本時間）</span><input class="inp" type="time" id="dayTime" value="00:00"></div>
+      <button class="btn-sub" id="dayPrev">◀ 前日</button>
+      <button class="btn-sub" id="dayNext">翌日 ▶</button>
+      <button class="btn" id="dayToday">今日 0:00</button>
+      <button class="btn" id="dayNow">いま</button>
+    </div>
+    <p class="note">選んだ日時（日本時間）の10天体とドラゴンヘッド（平均交点）のサビアンシンボルです。度数は「サイン内の度数を切り上げ」で数えます（例：蠍座2°15' → 蠍座3度）。右の欄には、その日（0:00〜24:00）のうちにサビアン度数が変わる時刻を表示します。月は1日に12〜15度進むので、通過するシンボルを一覧で開けます。</p>
+    <div class="status" id="dayStatus"></div>
+    <div class="copy-row">
+      <button class="btn-sub" id="copyNoteTable">⧉ note用にコピー（表）</button>
+      <button class="btn-sub" id="copyNoteList">⧉ note用にコピー（リスト）</button>
+    </div>
+    <table class="sab-table">
+      <thead><tr><th>天体</th><th>位置</th><th>サビアン</th><th>シンボル ／ その日の移り変わり</th></tr></thead>
+      <tbody id="dayBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===== 月間サビアン表 ===== -->
+  <div id="pane-month" class="tab-pane">
+    <div class="ctrl">
+      <div class="field"><span class="lbl">年</span><input class="inp" type="number" id="mYear" style="width:80px" min="1900" max="2100"></div>
+      <div class="field"><span class="lbl">月</span>
+        <select class="inp" id="mMonth">
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+      <div class="field"><span class="lbl">時刻（日本時間）</span><input class="inp" type="time" id="mTime" value="00:00"></div>
+      <button class="btn" id="mGen">✦ 表を作る</button>
+      <label style="display:flex;align-items:center;gap:5px;font-family:sans-serif;font-size:11px;color:var(--navy);padding:7px 0;cursor:pointer">
+        <input type="checkbox" id="mWithText" style="accent-color:var(--navy)"> コピー・CSVにシンボル文も入れる
+      </label>
+      <button class="btn-sub" id="mCopy">⧉ コピー（スプシ貼付用）</button>
+      <button class="btn-sub" id="mCsv">↓ CSV保存</button>
+    </div>
+    <p class="note">毎日、指定した時刻（日本時間）のサビアン度数の一覧です。セルをクリックすると、下の欄にシンボルが出ます。前の日から度数が変わったセルは金色、今日の行は青で示します。サインはエレメント別に火＝赤・地＝茶・風＝紫・水＝青で色分けしています。</p>
+    <div class="m-info" id="mInfo">セルをクリックすると、ここにシンボルが表示されます。</div>
+    <div class="status" id="mStatus"></div>
+    <div class="tbl-wrap" id="mWrap"></div>
+  </div>
+
+  <!-- ===== 360度一覧 ===== -->
+  <div id="pane-all" class="tab-pane">
+    <div class="ctrl">
+      <div class="field"><span class="lbl">サイン</span>
+        <select class="inp" id="aSign"><option value="-1">すべて</option></select>
+      </div>
+      <div class="field" style="flex:1;min-width:180px"><span class="lbl">ことばで検索</span><input class="inp" type="search" id="aQuery" placeholder="例：蝶、月、船"></div>
+    </div>
+    <p class="note">金色の行は、「その日のサビアン」タブで選んでいる日時に天体がいる度数です。</p>
+    <div id="aList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2/astronomy.browser.min.js"></script>
+<script src="./sabian-data.js"></script>
+<script>
+const SIGNS=['牡羊座','牡牛座','双子座','蟹座','獅子座','乙女座','天秤座','蠍座','射手座','山羊座','水瓶座','魚座'];
+const SIGN_SHORT=['羊','牛','双','蟹','獅','乙','天','蠍','射','山','水','魚'];
+const SSYM=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+const ELEMENT_CLS=['el-fire','el-earth','el-air','el-water'];
+function elSpan(si,text){return`<span class="${ELEMENT_CLS[si%4]}">${text}</span>`;}
+const BODIES=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto','Node'];
+const PNAMES={Sun:'太陽',Moon:'月',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星',Uranus:'天王星',Neptune:'海王星',Pluto:'冥王星',Node:'ドラゴンヘッド'};
+const PSYM={Sun:'☉',Moon:'☽',Mercury:'☿',Venus:'♀',Mars:'♂',Jupiter:'♃',Saturn:'♄',Uranus:'♅',Neptune:'♆',Pluto:'♇',Node:'☊'};
+const TZ=9;
+
+// ===== 計算（index.htmlのcalcPlanet、sky-events.jsのcalcMeanNodeLonと同じ式） =====
+function toJD(y,mo,d,h,mi,tz){const ut=h+mi/60-tz,day=d+ut/24;let yr=y,m=mo;if(m<=2){yr--;m+=12;}const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(m+1))+day+B-1524.5;}
+function calcPlanet(p,jd){
+  const date=new Date((jd-2440587.5)*86400000);
+  const time=Astronomy.MakeTime(date);
+  if(p==='Sun') return Astronomy.SunPosition(time).elon;
+  if(p==='Moon') return Astronomy.EclipticGeoMoon(time).lon;
+  const vec=Astronomy.GeoVector(Astronomy.Body[p],time,true);
+  return((Astronomy.Ecliptic(vec).elon%360)+360)%360;
+}
+function calcMeanNodeLon(jd){
+  const T=(jd-2451545)/36525;
+  const omega=125.0445222-1934.1362608*T+0.0020708*T*T+T*T*T/450000;
+  return((omega%360)+360)%360;
+}
+function lonAt(b,jd){const v=b==='Node'?calcMeanNodeLon(jd):calcPlanet(b,jd);return((v%360)+360)%360;}
+function circDiff(a,b){let d=a-b;while(d>180)d-=360;while(d<-180)d+=360;return d;}
+function isRetro(b,jd){if(b==='Sun'||b==='Moon')return false;if(b==='Node')return true;return circDiff(lonAt(b,jd+0.01),lonAt(b,jd-0.01))<0;}
+// 0〜359のサビアン番号（牡羊座1度=0）
+function sabIdx(lon){return Math.floor(lon)%360;}
+function sabOf(lon){const i=sabIdx(lon),si=Math.floor(i/30),deg=i%30+1;return{i,si,deg,text:SABIAN[si][deg-1]};}
+function sabLabel(s){return`${SIGNS[s.si]}${s.deg}度`;}
+function posStr(lon){const si=Math.floor(lon/30),dis=lon-si*30,d=Math.floor(dis),m=Math.floor((dis-d)*60);return{si,str:`${SIGNS[si]} ${d}°${String(m).padStart(2,'0')}'`};}
+function jdToHM(jd){const dt=new Date((jd-2440587.5)*86400000+TZ*3600000);return`${String(dt.getUTCHours()).padStart(2,'0')}:${String(dt.getUTCMinutes()).padStart(2,'0')}`;}
+
+// jdA〜jdBの間でサビアン度数が変わる瞬間をすべて返す（刻みで走査→二分探索）
+function findSabianChanges(b,jdA,jdB){
+  const step=b==='Moon'?1/144:1/24; // 月10分、他1時間
+  const out=[];let prevJd=jdA,prevI=sabIdx(lonAt(b,jdA));
+  for(let jd=jdA+step;jd<=jdB+1e-9;jd+=step){
+    const cur=Math.min(jd,jdB),ci=sabIdx(lonAt(b,cur));
+    if(ci!==prevI){
+      let lo=prevJd,hi=cur;
+      for(let k=0;k<20;k++){const mid=(lo+hi)/2;if(sabIdx(lonAt(b,mid))===prevI)lo=mid;else hi=mid;}
+      out.push({jd:hi,i:ci});prevI=ci;
+    }
+    prevJd=cur;
+  }
+  return out;
+}
+function idxToSab(i){const si=Math.floor(i/30),deg=i%30+1;return{i,si,deg,text:SABIAN[si][deg-1]};}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function pad2(n){return String(n).padStart(2,'0');}
+function todayStr(){const d=new Date();return`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;}
+
+// ===== タブ =====
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+  if(btn.dataset.tab==='all')renderAll();
+  if(btn.dataset.tab==='month'&&!document.getElementById('mWrap').innerHTML)renderMonth();
+}));
+
+// ===== その日のサビアン =====
+let DAY=null; // {dateStr,timeStr,rows:[{b,lon,s,retro,changes}]}
+function computeDay(){
+  const dateStr=document.getElementById('dayDate').value,timeStr=document.getElementById('dayTime').value||'00:00';
+  if(!dateStr)return;
+  const[y,mo,d]=dateStr.split('-').map(Number),[h,mi]=timeStr.split(':').map(Number);
+  const jd=toJD(y,mo,d,h,mi,TZ),jd0=toJD(y,mo,d,0,0,TZ),jd1=jd0+1;
+  const rows=BODIES.map(b=>{
+    const lon=lonAt(b,jd);
+    return{b,lon,s:sabOf(lon),retro:isRetro(b,jd),start:sabOf(lonAt(b,jd0)),changes:findSabianChanges(b,jd0,jd1)};
+  });
+  DAY={dateStr,timeStr,rows};
+  renderDay();
+}
+function renderDay(){
+  const{rows}=DAY;
+  document.getElementById('dayBody').innerHTML=rows.map(r=>{
+    const p=posStr(r.lon);
+    let chg='';
+    if(r.b==='Moon'){
+      const path=[{jd:null,s:r.start},...r.changes.map(c=>({jd:c.jd,s:idxToSab(c.i)}))];
+      chg=`<details class="moon-path"><summary>この日に通る${path.length}のシンボルを見る</summary><ol>${path.map(x=>`<li><span class="time-tag">${x.jd===null?'0:00':jdToHM(x.jd)}〜</span>${elSpan(x.s.si,sabLabel(x.s))}「${esc(x.s.text)}」</li>`).join('')}</ol></details>`;
+    }else if(r.changes.length){
+      chg=`<div class="sab-change">${r.changes.map(c=>{const s=idxToSab(c.i);return`<b>${jdToHM(c.jd)}</b> ${elSpan(s.si,sabLabel(s))}へ「${esc(s.text)}」`;}).join('<br>')}</div>`;
+    }
+    return`<tr><td class="sab-planet">${PSYM[r.b]} ${PNAMES[r.b]}${r.retro&&r.b!=='Node'?'<span class="sab-r">R</span>':''}</td><td class="sab-pos">${elSpan(p.si,p.str)}</td><td class="sab-deg">${elSpan(r.s.si,sabLabel(r.s))}</td><td><div class="sab-text">${esc(r.s.text)}</div>${chg}</td></tr>`;
+  }).join('');
+  const[y,mo,d]=DAY.dateStr.split('-').map(Number);
+  document.getElementById('dayStatus').textContent=`${y}年${mo}月${d}日 ${DAY.timeStr}（日本時間）の配置`;
+  if(document.getElementById('pane-all').classList.contains('active'))renderAll();
+}
+function shiftDay(n){const el=document.getElementById('dayDate');const[y,mo,d]=el.value.split('-').map(Number);const dt=new Date(y,mo-1,d+n);el.value=`${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;computeDay();}
+document.getElementById('dayPrev').addEventListener('click',()=>shiftDay(-1));
+document.getElementById('dayNext').addEventListener('click',()=>shiftDay(1));
+document.getElementById('dayToday').addEventListener('click',()=>{document.getElementById('dayDate').value=todayStr();document.getElementById('dayTime').value='00:00';computeDay();});
+document.getElementById('dayNow').addEventListener('click',()=>{const n=new Date();document.getElementById('dayDate').value=todayStr();document.getElementById('dayTime').value=`${pad2(n.getHours())}:${pad2(n.getMinutes())}`;computeDay();});
+document.getElementById('dayDate').addEventListener('change',computeDay);
+document.getElementById('dayTime').addEventListener('change',computeDay);
+
+function copyText(text,statusId,msg){
+  const done=()=>{const el=document.getElementById(statusId);el.textContent=msg;setTimeout(()=>{if(el.textContent===msg)el.textContent='';},2500);};
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(done,()=>fallback());}else fallback();
+  function fallback(){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();done();}
+}
+function dayHeading(){const[y,mo,d]=DAY.dateStr.split('-').map(Number);return`${y}年${mo}月${d}日 ${DAY.timeStr}（日本時間）`;}
+document.getElementById('copyNoteTable').addEventListener('click',()=>{
+  if(!DAY)return;
+  const lines=['| 天体 | サビアン | シンボル |','|---|---|---|'];
+  DAY.rows.forEach(r=>lines.push(`| ${PNAMES[r.b]}${r.retro&&r.b!=='Node'?'(R)':''} | ${sabLabel(r.s)} | ${r.s.text} |`));
+  copyText(`今日のサビアンシンボル（${dayHeading()}）\n\n${lines.join('\n')}\n`,'dayStatus','表をコピーしました');
+});
+document.getElementById('copyNoteList').addEventListener('click',()=>{
+  if(!DAY)return;
+  const lines=DAY.rows.map(r=>`${PNAMES[r.b]}${r.retro&&r.b!=='Node'?'(R)':''}　${sabLabel(r.s)}「${r.s.text}」`);
+  copyText(`今日のサビアンシンボル（${dayHeading()}）\n\n${lines.join('\n')}\n`,'dayStatus','リストをコピーしました');
+});
+
+// ===== 月間サビアン表 =====
+let MONTH=null; // {y,mo,timeStr,days:[{d,cells:[{b,s,retro,chg}]}]}
+function renderMonth(){
+  const y=+document.getElementById('mYear').value,mo=+document.getElementById('mMonth').value;
+  const timeStr=document.getElementById('mTime').value||'00:00',[h,mi]=timeStr.split(':').map(Number);
+  if(!y||!mo)return;
+  const nDays=new Date(y,mo,0).getDate();
+  const prevJd=toJD(y,mo,0,h,mi,TZ);
+  const prevIdx={};BODIES.forEach(b=>prevIdx[b]=sabIdx(lonAt(b,prevJd)));
+  const days=[];
+  for(let d=1;d<=nDays;d++){
+    const jd=toJD(y,mo,d,h,mi,TZ);
+    const cells=BODIES.map(b=>{const s=sabOf(lonAt(b,jd)),chg=s.i!==prevIdx[b];prevIdx[b]=s.i;return{b,s,retro:isRetro(b,jd),chg};});
+    days.push({d,cells});
+  }
+  MONTH={y,mo,timeStr,days};
+  const WD=['日','月','火','水','木','金','土'],today=todayStr();
+  let html='<table class="m-table"><thead><tr><th class="m-date">日付</th>'+BODIES.map(b=>`<th>${PSYM[b]} ${PNAMES[b]}</th>`).join('')+'</tr></thead><tbody>';
+  days.forEach(({d,cells})=>{
+    const ds=`${y}-${pad2(mo)}-${pad2(d)}`,wd=WD[new Date(y,mo-1,d).getDay()];
+    html+=`<tr${ds===today?' class="m-today"':''}><td class="m-date">${mo}/${d}（${wd}）</td>`+cells.map((c,ci)=>`<td class="${c.b!=='Moon'&&c.chg?'m-chg':''}" data-d="${d}" data-c="${ci}" title="${esc(c.s.text)}">${elSpan(c.s.si,SIGN_SHORT[c.s.si]+c.s.deg)}${c.retro&&c.b!=='Node'?'<span class="sab-r">R</span>':''}</td>`).join('')+'</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('mWrap').innerHTML=html;
+  document.getElementById('mStatus').textContent=`${y}年${mo}月 毎日${timeStr}（日本時間）`;
+}
+document.getElementById('mGen').addEventListener('click',renderMonth);
+document.getElementById('mWrap').addEventListener('click',e=>{
+  const td=e.target.closest('td[data-d]');if(!td||!MONTH)return;
+  document.querySelectorAll('.m-table td.m-sel').forEach(x=>x.classList.remove('m-sel'));td.classList.add('m-sel');
+  const c=MONTH.days[+td.dataset.d-1].cells[+td.dataset.c];
+  document.getElementById('mInfo').innerHTML=`<b>${MONTH.mo}/${td.dataset.d} ${PSYM[c.b]} ${PNAMES[c.b]}</b>　${elSpan(c.s.si,sabLabel(c.s))}<div class="sab-text">${esc(c.s.text)}</div>`;
+});
+function monthRows(){
+  const withText=document.getElementById('mWithText').checked;
+  const header=['日付'];BODIES.forEach(b=>{header.push(PNAMES[b]);if(withText)header.push(`${PNAMES[b]}_シンボル`);});
+  const rows=[header];
+  MONTH.days.forEach(({d,cells})=>{
+    const r=[`${MONTH.y}-${pad2(MONTH.mo)}-${pad2(d)}`];
+    cells.forEach(c=>{r.push(sabLabel(c.s)+(c.retro&&c.b!=='Node'?'(R)':''));if(withText)r.push(c.s.text);});
+    rows.push(r);
+  });
+  return rows;
+}
+document.getElementById('mCopy').addEventListener('click',()=>{if(!MONTH)return;copyText(monthRows().map(r=>r.join('\t')).join('\n'),'mStatus','コピーしました（スプレッドシートに貼りつけできます）');});
+document.getElementById('mCsv').addEventListener('click',()=>{
+  if(!MONTH)return;
+  const csv=monthRows().map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download=`sabian-${MONTH.y}-${pad2(MONTH.mo)}.csv`;a.click();
+});
+
+// ===== 360度一覧 =====
+const aSign=document.getElementById('aSign');
+SIGNS.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${SSYM[i]}︎ ${s}`;aSign.appendChild(o);});
+function renderAll(){
+  const sel=+aSign.value,q=document.getElementById('aQuery').value.trim();
+  const occ={};if(DAY)DAY.rows.forEach(r=>{(occ[r.s.i]=occ[r.s.i]||[]).push(r.b);});
+  let html='';
+  SIGNS.forEach((sign,si)=>{
+    if(sel>=0&&sel!==si)return;
+    const items=SABIAN[si].map((t,k)=>({t,k,i:si*30+k})).filter(x=>!q||x.t.includes(q));
+    if(!items.length)return;
+    html+=`<div class="sign-block"><h3>${elSpan(si,`${SSYM[si]}︎ ${sign}`)}</h3><ul class="deg-list">`;
+    items.forEach(x=>{
+      const bs=occ[x.i]||[];
+      const txt=q?esc(x.t).split(esc(q)).join(`<mark>${esc(q)}</mark>`):esc(x.t);
+      html+=`<li class="${bs.length?'occupied':''}"><span class="dnum">${x.k+1}度</span><span class="dtxt">${txt}${bs.map(b=>`<span class="badge">${PSYM[b]} ${PNAMES[b]}</span>`).join('')}</span></li>`;
+    });
+    html+='</ul></div>';
+  });
+  document.getElementById('aList').innerHTML=html||'<p class="note">見つかりませんでした。</p>';
+}
+aSign.addEventListener('change',renderAll);
+document.getElementById('aQuery').addEventListener('input',renderAll);
+
+// ===== 初期表示 =====
+document.getElementById('dayDate').value=todayStr();
+{const n=new Date();document.getElementById('mYear').value=n.getFullYear();document.getElementById('mMonth').value=n.getMonth()+1;}
+computeDay();
+</script>
+</body>
+</html>
