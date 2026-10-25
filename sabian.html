@@ -68,6 +68,17 @@ details.moon-path li { padding: 2px 0; border-bottom: 1px dotted rgba(26,42,74,0
 .m-table td.m-chg { background: #fff8e1; box-shadow: inset 3px 0 0 var(--gold); }
 .m-table tr.m-today td { background: #eef3fb; }
 .m-table td.m-sel { outline: 2px solid var(--gold); outline-offset: -2px; }
+.l-table td { cursor: default; text-align: left; white-space: normal; vertical-align: top; }
+.l-table td.l-when { white-space: nowrap; font-weight: 700; }
+.l-table tr.l-next td { background: #eef3fb; }
+.l-table tr.l-new td.l-kind { color: var(--navy); }
+.l-table tr.l-full td.l-kind { color: var(--gold); }
+.l-kind { white-space: nowrap; font-weight: 700; }
+.l-ecl { display: inline-block; font-size: 9px; font-weight: 700; color: #fff; background: #8a1a1a; border-radius: 3px; padding: 1px 5px; margin-left: 4px; }
+.l-sym { font-family: Georgia, serif; font-size: 13px; line-height: 1.5; }
+.l-sub { font-size: 10px; color: var(--muted); }
+.lun-banner { background: #fff; border: 1.5px solid rgba(184,134,11,0.5); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: sans-serif; font-size: 12px; line-height: 1.7; }
+.lun-banner .sab-text { font-size: 14px; }
 .m-info { background: #fff; border: 1.5px solid rgba(184,134,11,0.4); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: sans-serif; font-size: 12px; min-height: 2.6em; }
 .m-info .sab-text { font-size: 14px; }
 
@@ -100,6 +111,7 @@ mark { background: #ffe58a; padding: 0 1px; }
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="day">その日のサビアン</button>
+    <button class="tab-btn" data-tab="lunation">新月・満月</button>
     <button class="tab-btn" data-tab="month">月間サビアン表</button>
     <button class="tab-btn" data-tab="all">360度一覧</button>
   </div>
@@ -116,6 +128,7 @@ mark { background: #ffe58a; padding: 0 1px; }
     </div>
     <p class="note">選んだ日時（日本時間）の10天体とドラゴンヘッド（平均交点）のサビアンシンボルです。度数は「サイン内の度数を切り上げ」で数えます（例：蠍座2°15' → 蠍座3度）。右の欄には、その日（0:00〜24:00）のうちにサビアン度数が変わる時刻を表示します。月は1日に12〜15度進むので、通過するシンボルを一覧で開けます。</p>
     <div class="status" id="dayStatus"></div>
+    <div id="dayLunation"></div>
     <div class="copy-row">
       <button class="btn-sub" id="copyNoteTable">⧉ note用にコピー（表）</button>
       <button class="btn-sub" id="copyNoteList">⧉ note用にコピー（リスト）</button>
@@ -124,6 +137,22 @@ mark { background: #ffe58a; padding: 0 1px; }
       <thead><tr><th>天体</th><th>位置</th><th>サビアン</th><th>シンボル ／ その日の移り変わり</th></tr></thead>
       <tbody id="dayBody"></tbody>
     </table>
+  </div>
+
+  <!-- ===== 新月・満月 ===== -->
+  <div id="pane-lunation" class="tab-pane">
+    <div class="ctrl">
+      <div class="field"><span class="lbl">年</span><input class="inp" type="number" id="lYear" style="width:80px" min="1900" max="2100"></div>
+      <button class="btn-sub" id="lPrev">◀ 前年</button>
+      <button class="btn-sub" id="lNext">翌年 ▶</button>
+      <label style="display:flex;align-items:center;gap:5px;font-family:sans-serif;font-size:11px;color:var(--navy);padding:7px 0;cursor:pointer">
+        <input type="checkbox" id="lQuarters" style="accent-color:var(--navy)"> 上弦・下弦も出す
+      </label>
+      <button class="btn-sub" id="lCopy">⧉ コピー（スプシ貼付用）</button>
+    </div>
+    <p class="note">新月・満月がぴったり成立する時刻（日本時間）と、その瞬間の月と太陽のサビアンシンボルです。新月は太陽と月が同じ度数に、満月は向かいあう度数に入ります（ぴったりの瞬間でも、分の差で度数が1つずれることがあります）。日食・月食にあたる回には印が付きます。「全天体を見る」を押すと、その時刻の10天体のサビアンを開きます。いちばん近い、これから来る回は青く示します。</p>
+    <div class="status" id="lStatus"></div>
+    <div class="tbl-wrap" id="lWrap" style="max-height:none"></div>
   </div>
 
   <!-- ===== 月間サビアン表 ===== -->
@@ -223,12 +252,52 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 function pad2(n){return String(n).padStart(2,'0');}
 function todayStr(){const d=new Date();return`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;}
 
+// ===== 新月・満月（astronomy-engineのSearchMoonQuarter：0=新月 1=上弦 2=満月 3=下弦） =====
+const Q_LABEL=['🌑 新月','🌓 上弦','🌕 満月','🌗 下弦'];
+const Q_CLS=['l-new','l-q','l-full','l-q'];
+const ECL_KIND={total:'皆既',annular:'金環',partial:'部分',penumbral:'半影',hybrid:'金環皆既'};
+function dateToJD(d){return d.getTime()/86400000+2440587.5;}
+function jdToAstroTime(jd){return Astronomy.MakeTime(new Date((jd-2440587.5)*86400000));}
+function jdToJST(jd){const dt=new Date((jd-2440587.5)*86400000+TZ*3600000);return{y:dt.getUTCFullYear(),mo:dt.getUTCMonth()+1,d:dt.getUTCDate(),h:dt.getUTCHours(),mi:dt.getUTCMinutes()};}
+function findLunations(jdA,jdB,withQuarters){
+  const out=[];let mq=Astronomy.SearchMoonQuarter(jdToAstroTime(jdA));
+  while(dateToJD(mq.time.date)<jdB){
+    if(withQuarters||mq.quarter%2===0)out.push({q:mq.quarter,jd:dateToJD(mq.time.date)});
+    mq=Astronomy.NextMoonQuarter(mq);
+  }
+  return out;
+}
+// 新月→日食、満月→月食（食の極大と新月・満月の時刻は数時間ずれるので±1日で照合）
+function findEclipses(jdA,jdB){
+  const out=[];
+  let e=Astronomy.SearchGlobalSolarEclipse(jdToAstroTime(jdA-1));
+  while(dateToJD(e.peak.date)<jdB+1){out.push({q:0,jd:dateToJD(e.peak.date),kind:e.kind});e=Astronomy.NextGlobalSolarEclipse(e.peak);}
+  let l=Astronomy.SearchLunarEclipse(jdToAstroTime(jdA-1));
+  while(dateToJD(l.peak.date)<jdB+1){out.push({q:2,jd:dateToJD(l.peak.date),kind:l.kind});l=Astronomy.NextLunarEclipse(l.peak);}
+  return out;
+}
+function lunationDetail(lun,ecls){
+  const ecl=ecls.find(e=>e.q===lun.q&&Math.abs(e.jd-lun.jd)<1);
+  const mLon=lonAt('Moon',lun.jd),sLon=lonAt('Sun',lun.jd);
+  return{...lun,moon:sabOf(mLon),sun:sabOf(sLon),moonPos:posStr(mLon),eclLabel:ecl?`${ECL_KIND[ecl.kind]||ecl.kind}${ecl.q===0?'日食':'月食'}`:''};
+}
+function lunWhen(jd){const t=jdToJST(jd);return`${t.y}/${t.mo}/${t.d} ${pad2(t.h)}:${pad2(t.mi)}`;}
+// 指定時刻で「その日のサビアン」タブを開く
+function openDayAt(jd){
+  const t=jdToJST(jd);
+  document.getElementById('dayDate').value=`${t.y}-${pad2(t.mo)}-${pad2(t.d)}`;
+  document.getElementById('dayTime').value=`${pad2(t.h)}:${pad2(t.mi)}`;
+  document.querySelector('.tab-btn[data-tab="day"]').click();
+  computeDay();
+}
+
 // ===== タブ =====
 document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
   if(btn.dataset.tab==='all')renderAll();
+  if(btn.dataset.tab==='lunation'&&!document.getElementById('lWrap').innerHTML)renderLunations();
   if(btn.dataset.tab==='month'&&!document.getElementById('mWrap').innerHTML)renderMonth();
 }));
 
@@ -245,7 +314,21 @@ function computeDay(){
   });
   DAY={dateStr,timeStr,rows};
   renderDay();
+  renderDayLunation(jd0,jd1);
 }
+function renderDayLunation(jd0,jd1){
+  const luns=findLunations(jd0,jd1,false);
+  if(!luns.length){document.getElementById('dayLunation').innerHTML='';return;}
+  const ecls=findEclipses(jd0,jd1);
+  document.getElementById('dayLunation').innerHTML=luns.map(l=>{
+    const x=lunationDetail(l,ecls),t=jdToJST(x.jd);
+    const sunLine=x.sun.i!==x.moon.i?`<div class="l-sub">☉ 太陽 ${elSpan(x.sun.si,sabLabel(x.sun))}「${esc(x.sun.text)}」</div>`:'';
+    return`<div class="lun-banner"><b>この日は${Q_LABEL[x.q]}</b>　${pad2(t.h)}:${pad2(t.mi)}${x.eclLabel?`<span class="l-ecl">${x.eclLabel}</span>`:''}
+      <button class="btn-sub" style="margin-left:8px;padding:3px 10px" data-lunjd="${x.jd}">この時刻の全天体を見る</button>
+      <div>☽ 月 ${elSpan(x.moon.si,sabLabel(x.moon))}<div class="sab-text">${esc(x.moon.text)}</div></div>${sunLine}</div>`;
+  }).join('');
+}
+document.getElementById('dayLunation').addEventListener('click',e=>{const b=e.target.closest('[data-lunjd]');if(b)openDayAt(+b.dataset.lunjd);});
 function renderDay(){
   const{rows}=DAY;
   document.getElementById('dayBody').innerHTML=rows.map(r=>{
@@ -287,6 +370,39 @@ document.getElementById('copyNoteList').addEventListener('click',()=>{
   if(!DAY)return;
   const lines=DAY.rows.map(r=>`${PNAMES[r.b]}${r.retro&&r.b!=='Node'?'(R)':''}　${sabLabel(r.s)}「${r.s.text}」`);
   copyText(`今日のサビアンシンボル（${dayHeading()}）\n\n${lines.join('\n')}\n`,'dayStatus','リストをコピーしました');
+});
+
+// ===== 新月・満月タブ =====
+let LUN=null; // {y,list:[lunationDetail]}
+function renderLunations(){
+  const y=+document.getElementById('lYear').value;if(!y)return;
+  const withQ=document.getElementById('lQuarters').checked;
+  const jdA=toJD(y,1,1,0,0,TZ),jdB=toJD(y+1,1,1,0,0,TZ);
+  const ecls=findEclipses(jdA,jdB);
+  const list=findLunations(jdA,jdB,withQ).map(l=>lunationDetail(l,ecls));
+  LUN={y,list};
+  const nowJd=dateToJD(new Date()),nextIdx=list.findIndex(x=>x.jd>=nowJd);
+  let html='<table class="m-table l-table"><thead><tr><th>日時（日本時間）</th><th>種類</th><th>☽ 月のサビアン</th><th>☉ 太陽のサビアン</th><th></th></tr></thead><tbody>';
+  list.forEach((x,i)=>{
+    html+=`<tr class="${Q_CLS[x.q]}${i===nextIdx?' l-next':''}"><td class="l-when">${lunWhen(x.jd)}</td><td class="l-kind">${Q_LABEL[x.q]}${x.eclLabel?`<span class="l-ecl">${x.eclLabel}</span>`:''}</td>
+      <td><b>${elSpan(x.moon.si,sabLabel(x.moon))}</b> <span class="l-sub">${x.moonPos.str}</span><div class="l-sym">${esc(x.moon.text)}</div></td>
+      <td><b>${elSpan(x.sun.si,sabLabel(x.sun))}</b><div class="l-sym">${esc(x.sun.text)}</div></td>
+      <td><button class="btn-sub" style="padding:3px 8px" data-lunjd="${x.jd}">全天体を見る</button></td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('lWrap').innerHTML=html;
+  document.getElementById('lStatus').textContent=`${y}年：新月${list.filter(x=>x.q===0).length}回・満月${list.filter(x=>x.q===2).length}回${ecls.filter(e=>e.jd>=jdA&&e.jd<jdB).length?`・食${ecls.filter(e=>e.jd>=jdA&&e.jd<jdB).length}回`:''}`;
+}
+document.getElementById('lWrap').addEventListener('click',e=>{const b=e.target.closest('[data-lunjd]');if(b)openDayAt(+b.dataset.lunjd);});
+document.getElementById('lQuarters').addEventListener('change',renderLunations);
+document.getElementById('lYear').addEventListener('change',renderLunations);
+document.getElementById('lPrev').addEventListener('click',()=>{const el=document.getElementById('lYear');el.value=+el.value-1;renderLunations();});
+document.getElementById('lNext').addEventListener('click',()=>{const el=document.getElementById('lYear');el.value=+el.value+1;renderLunations();});
+document.getElementById('lCopy').addEventListener('click',()=>{
+  if(!LUN)return;
+  const rows=[['日時','種類','食','月の位置','月のサビアン','月のシンボル','太陽のサビアン','太陽のシンボル']];
+  LUN.list.forEach(x=>rows.push([lunWhen(x.jd),Q_LABEL[x.q].slice(3),x.eclLabel,x.moonPos.str,sabLabel(x.moon),x.moon.text,sabLabel(x.sun),x.sun.text]));
+  copyText(rows.map(r=>r.join('\t')).join('\n'),'lStatus','コピーしました（スプレッドシートに貼りつけできます）');
 });
 
 // ===== 月間サビアン表 =====
@@ -366,7 +482,7 @@ document.getElementById('aQuery').addEventListener('input',renderAll);
 
 // ===== 初期表示 =====
 document.getElementById('dayDate').value=todayStr();
-{const n=new Date();document.getElementById('mYear').value=n.getFullYear();document.getElementById('mMonth').value=n.getMonth()+1;}
+{const n=new Date();document.getElementById('lYear').value=n.getFullYear();document.getElementById('mYear').value=n.getFullYear();document.getElementById('mMonth').value=n.getMonth()+1;}
 computeDay();
 </script>
 </body>
